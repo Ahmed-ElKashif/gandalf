@@ -4,17 +4,17 @@ description: >-
   Guide a fellowship of delegation lanes — any models you have, free or premium:
   cast each role (feature, ui, bugfix, devops, chores, complex, review-main,
   review-debate) onto an implementer CLI with a premium skill set, then run the
-  dispatch → guards → land loop. Use when setting up or adjusting a delegation fleet, choosing which lane
-  should implement a task, dispatching work to an implementer, or reviewing a diff.
-  Triggers: "gandalf", "summon the fellowship", "which lane", "dispatch this",
-  "set up the fleet".
+  dispatch → guards → land loop. Use when choosing which lane should implement a
+  task, dispatching work to an implementer, or reviewing a diff. For casting or
+  re-casting the fleet itself, prefer `council-of-elrond` (same repo).
+  Triggers: "gandalf", "summon the fellowship", "which lane", "dispatch this".
 license: MIT
 compatibility: >-
   Orchestrator: any agent that can run shell commands and read files. Fleet: at
   least one delegation-capable implementer CLI (opencode, agy, Claude Code, Codex,
   Cursor, Warp, …), Node 18+, git; `gh` for the PR lanes.
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # gandalf
@@ -58,7 +58,9 @@ was born from (free opencode lanes + agy Opus for the dark roads).
    (`npx skills add amElnagdy/delegate-skills -g -y` ships the opencode, agy, claude,
    cursor, codex, and warp relays), plus the guards, `DietrichGebert/ponytail`, and
    `amelnagdy/ui-review-loop`. Full list: `references/loadouts.md`.
-3. **Cast the fellowship** — start from `presets/free-first.json` or
+3. **Cast the fellowship** — fastest: run the **`council-of-elrond`** skill (same
+   repo): one question, all eight roles cast, config + preambles written and
+   verified for you. Manually: start from `presets/free-first.json` or
    `templates/fleet.template.json`, map each role to an implementer + model, then:
    `node <delegate-setup>/scripts/config.mjs validate <file>` →
    `node <delegate-setup>/scripts/config.mjs write --scope global <file>` →

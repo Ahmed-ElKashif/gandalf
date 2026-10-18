@@ -43,7 +43,7 @@ out, never commits — so the loop never changes when you re-cast a role.
 
 ### free-first (the shipped preset)
 
-`presets/free-first.json` — five free OpenCode models + Antigravity for the dark roads:
+`presets/free-first.json` — six free OpenCode models + Antigravity for the dark roads:
 
 | Role | Member | Why |
 |---|---|---|

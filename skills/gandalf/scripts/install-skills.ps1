@@ -2,7 +2,7 @@
 # Installs every skill pack referenced by references/loadouts.md, via the skills CLI,
 # so all skill-aware agents on this machine pick them up.
 #
-# Usage:      pwsh -File scripts/install-skills.ps1
+# Usage:      pwsh -File scripts/install-skills.ps1   # run from this skill's directory
 #             pwsh -File scripts/install-skills.ps1 -SkipStackPacks   # skip the repo-framework packs
 #
 # Requires:   Node 18+ (npx). Optional: gh (PR lanes), ffmpeg (ui-review-loop recording).
