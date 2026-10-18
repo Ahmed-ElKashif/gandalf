@@ -1,0 +1,37 @@
+{
+  "version": "delegate-fleet.v1",
+  "lanes": {
+    "feature": {
+      "implementer": "opencode",
+      "model": "REPLACE-WITH-YOUR-STRONGEST-EVERYDAY-MODEL"
+    },
+    "ui": {
+      "implementer": "opencode",
+      "model": "REPLACE-WITH-A-VISUAL-LONG-HORIZON-MODEL"
+    },
+    "bugfix": {
+      "implementer": "opencode",
+      "model": "REPLACE-WITH-A-REASONING-HEAVY-MODEL"
+    },
+    "devops": {
+      "implementer": "opencode",
+      "model": "REPLACE-WITH-A-FAST-CHEAP-MODEL"
+    },
+    "chores": {
+      "implementer": "opencode",
+      "model": "REPLACE-WITH-YOUR-CHEAPEST-CAPABLE-MODEL"
+    },
+    "complex": {
+      "implementer": "agy",
+      "model": "REPLACE-WITH-YOUR-STRONGEST-MODEL"
+    },
+    "review-main": {
+      "implementer": "opencode",
+      "model": "REPLACE-WITH-A-SECOND-OPINION-MODEL"
+    },
+    "review-debate": {
+      "implementer": "agy",
+      "model": "REPLACE-WITH-A-STRONGER-DIFFERENT-CHALLENGER"
+    }
+  }
+}

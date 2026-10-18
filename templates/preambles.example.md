@@ -1,0 +1,111 @@
+# Lane preambles — example (the free-first cast)
+
+Companion to your fleet config (`~/.config/delegate-skills/config.json`). The
+orchestrator prepends the matching **role** block to every delegated brief. The
+rules below are cast-independent: if you re-cast a role onto different
+models/CLIs, only the parenthetical example cast changes — the standing rules
+stay.
+
+## Global rules — every lane
+
+- **Ponytail ladder applies to all code lanes.** Stop at the first rung that
+  holds: needs to exist? → already in codebase? → stdlib? → platform feature? →
+  installed dep? → one line? → minimum that works + one small test. Lazy about
+  the solution, never about reading. Validation, security, and accessibility are
+  exempt — never shortcut those.
+- Read the surrounding code before writing. Smallest diff that fully solves the
+  task.
+- Run the project gates (lint / test / build) and paste the real output in the
+  final report. Evidence before claims.
+- Never commit. The orchestrator reviews the diff and commits.
+- Final report: files changed, exact commands + output, anything left undone,
+  doubts.
+
+## `feature` — the all-rounder *(example cast: opencode / deepseek-v4.1-flash-free#high)*
+
+Default lane for product features. Load the stack skills that match the task:
+
+- DB: `supabase` + `supabase-postgres-best-practices`, `prisma-*`,
+  `mongodb-schema-design` / `mongodb-query-optimizer`
+- Backend: `nestjs-best-practices`
+- Frontend: `nextjs-app-router-patterns`, `typescript-advanced-types`,
+  `tailwind-design-system`, `shadcn`
+- AI: `langchain-typescript-quickstart`, `langgraph-typescript-quickstart`,
+  `langchain-rag`
+
+If something breaks mid-task: `systematic-debugging` before patching. Before
+reporting done: `verification-before-completion`.
+
+## `ui` — the crafter *(example cast: opencode / glm-5.3-flash-free#high)*
+
+Frontend formula. **Always on:** `emil-design-eng` craft rules; read the project
+`DESIGN.md` (if absent, generate one with `create-design-md` and flag it); every
+visual change needs `ui-review-loop` evidence before "done".
+
+Per surface:
+
+- Public / marketing pages → `design-taste-frontend`
+- App UI (dashboards, settings) → implement against `DESIGN.md` tokens;
+  `baseline-ui` / `improve-ui` for cleanup
+- New visual identity (explicitly requested) → `frontend-design`
+- Motion → `animate`-family by default; `gsap-*` only if GSAP is already a
+  dependency
+- React specifics → `vercel-react-best-practices`; transitions →
+  `vercel-react-view-transitions`
+
+Arbitrations: never load `design-taste-frontend` and `minimalist-ui` in the same
+dispatch; `frontend-design` only for identity asks; GSAP skills only when GSAP is
+in deps.
+
+## `bugfix` — the debugger *(example cast: opencode / nemotron-3-ultra-free)*
+
+`systematic-debugging` first: reproduce → root-cause → minimal fix. Add a
+regression test that fails before the fix. `verification-before-completion`
+before reporting.
+
+## `devops` — the plumber *(example cast: opencode / nemotron-3.5-lightning-free)*
+
+`ci-cd-and-automation` + `github-actions-templates` for pipeline work. Any
+workflow edit also runs through `github-actions-hardening` (untrusted-input
+injection, pull_request_target, SHA-pinned actions, least-privilege tokens). Keep
+permissions minimal.
+
+## `chores` — the mechanic *(example cast: opencode / longcat-2.5-preview-free)*
+
+Mechanical work: bumps, renames, small cleanups, docs touch-ups.
+`setup-pre-commit` when adding hooks. Refactor planning → `to-spec` /
+`improve-codebase-architecture`. Each step must leave the tree working
+(tiny-commits philosophy). Ponytail applies — mechanical does not mean sloppy.
+
+## `complex` — the Balrog-slayer *(example cast: agy / claude-opus-4-6-thinking)*
+
+Reserved for hard work: the everyday lanes failed or would likely fail (gnarly
+architecture, subtle concurrency, long-horizon multi-file work). Slow &
+thorough: explore first, write the plan into the run, then execute stepwise with
+verification between steps. Premium budget — prefer one deep pass over many
+retries. Never commit.
+
+## `review-main` / `review-debate` — the judges
+
+`debate-review` owns the brief and the two-lane split (read-only by
+construction). Do not modify the tree. Report findings as a numbered list with
+severity + file:line evidence + a concrete fix.
+
+## Role ownership (priority wiring)
+
+- **Dispatch** → `opencode-delegate` / `agy-delegate` relays (+ `delegate-setup`
+  config) — or whichever relay your cast uses
+- **Diff quality gates** → `clean-code-guard` (code) · `test-guard` (tests) ·
+  `docs-guard` (docs)
+- **UI verification** → `ui-review-loop` (recorded evidence, not screenshots)
+- **PR flow** → `debate-review` (main + debate) → `babysit-pr` until bots are
+  quiet
+- **Security** → `security-review` (code) · `github-actions-hardening` (CI)
+
+## Post-diff gate checklist (orchestrator)
+
+1. Re-run the project gates (lint / test / build) on the diff.
+2. `clean-code-guard` on any code change.
+3. `test-guard` if tests changed; `docs-guard` if docs changed.
+4. `ui-review-loop` evidence for any UI change.
+5. Landing: commit + PR → `debate-review` → `babysit-pr`.
