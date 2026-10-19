@@ -25,6 +25,10 @@
       "implementer": "agy",
       "model": "REPLACE-WITH-YOUR-STRONGEST-MODEL"
     },
+    "plan-debate": {
+      "implementer": "agy",
+      "model": "REPLACE-WITH-YOUR-PLAN-CHALLENGER-MODEL"
+    },
     "review-main": {
       "implementer": "opencode",
       "model": "REPLACE-WITH-A-SECOND-OPINION-MODEL"

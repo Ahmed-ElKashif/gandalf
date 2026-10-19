@@ -2,13 +2,14 @@
 name: council-of-elrond
 description: >-
   Convene the council that forms your delegation fleet — gandalf-style casting:
-  ask one grounding question, cast the eight roles (feature, ui, bugfix, devops,
-  chores, complex, review-main, review-debate) onto the CLIs and models you
-  actually have, write the delegate-fleet config, generate lane preambles, check
-  the gear, and verify the cast. Use when the user asks to set up, cast, muster,
-  or configure a delegation fleet, install the fleet on a new machine, or decide
-  which model should handle which kind of work. Triggers: "set up the fleet",
-  "cast the fellowship", "muster the lanes", "council of Elrond".
+  arm the machine from packs.json, ask one grounding question, cast the nine roles
+  (feature, ui, bugfix, devops, chores, complex, plan-debate, review-main,
+  review-debate) onto the CLIs and models you actually have, write the
+  delegate-fleet config, generate lane preambles, and verify the cast. Use when the
+  user asks to set up, cast, muster, or configure a delegation fleet, install the
+  fleet on a new machine, or decide which model should handle which kind of work.
+  Triggers: "set up the fleet", "cast the fellowship", "muster the lanes",
+  "council of Elrond".
 license: MIT
 compatibility: >-
   Requires Node 18+. Ships its own copy of the discovery/validation engine
@@ -53,17 +54,27 @@ One concept: **lanes**. A lane names an implementer and optional dials.
 7. Every lane carries a **Basis**: `preset` / `your answer` / `my opinion` /
    `schema requirement`. Beyond the preset, your own dial picks are offered as an
    addendum after the table — never pre-filled silently.
-8. The eight roles are the standard cast. Fewer is fine when the user asks for
-   less; never more without asking.
+8. The nine roles are the standard cast: six that **walk** (`feature`, `ui`,
+   `bugfix`, `devops`, `chores`, `complex`) and three that **judge**
+   (`plan-debate`, `review-main`, `review-debate`). Fewer is fine when the user
+   asks for less; never more without asking. `plan-debate` is the optional third
+   judge — ask about it, and say plainly what falls back if they decline.
 9. Never edit `AGENTS.md`, `CLAUDE.md`, or other user agent-instruction files.
 10. Never dispatch coding work from this skill. Verification runs are read-only
     health checks only.
+11. Arm from `packs.json` (shipped inside this skill) — the single source of truth
+    for what to install and what to credit. Never hand-roll an install list. Show
+    the delta table, take one approval, install in file order, `delegate-skills`
+    first. Re-arms show only what changed.
 
 (`<skill-dir>` = this skill's folder — the one containing this `SKILL.md`.)
 
 ## Flow
 
-`preflight → discover → load → posture → cast → approve & write → preambles → gear → verify & hand off`
+`preflight → arm → discover → load → posture → cast → approve & write → preambles → verify & hand off`
+
+Arming runs **before** discovery on purpose: the cast can only be built from CLIs
+and relays that are actually on the machine.
 
 ### 0. Preflight
 
@@ -73,7 +84,35 @@ Node 18+. Confirm the engine is intact:
 node "<skill-dir>/scripts/config.mjs" --help
 ```
 
-### 1. Discover
+### 1. Arm
+
+Read `packs.json` (in this skill's folder — `<skill-dir>/packs.json`) — the single
+source of truth for what to install **and** what to credit. Show **one table** of the
+delta: what is missing, its tier, its licence, and which roles it serves. Then take
+**one** approval.
+
+Install in file order through the skills CLI. `delegate-skills` **first, always**
+— it ships the relays and the `delegate-setup` engine, so the user can choose
+their implementers before you cast:
+
+```bash
+npx skills add amElnagdy/delegate-skills -g -y     # first, always
+# …then the remaining core + ui entries, in packs.json order
+```
+
+Only `defaultTiers` (`core`, `ui`) install by default. `stack` and `devops` are
+offered per repo. `optional` (`security-review`) is **never** installed
+automatically — it lives outside the loop.
+
+Two runtime requirements worth stating plainly, both satisfied by the core tier:
+
+- Relays resolve `--lane` through the **`delegate-setup`** skill installed beside
+  them — keep it installed.
+- The `review-main` / `review-debate` lanes need **`debate-review`**.
+
+Detail, tiers and the per-role mapping: `references/arming.md`.
+
+### 2. Discover
 
 ```bash
 node "<skill-dir>/scripts/discover.mjs"
@@ -82,7 +121,7 @@ node "<skill-dir>/scripts/discover.mjs"
 Summarize: installed vs missing CLIs, auth (`true` / `false` / `null` = unknown),
 and whether models were `reported` / `aliases` / `unsupported` / `failed`.
 
-### 2. Load existing
+### 3. Load existing
 
 ```bash
 node "<skill-dir>/scripts/config.mjs" load --cwd "$PWD"
@@ -92,7 +131,7 @@ node "<skill-dir>/scripts/config.mjs" load --cwd "$PWD"
 - A fleet exists → show the effective lanes (with their `source`), then ask:
   keep it, or re-cast? Never silently overwrite.
 
-### 3. Posture — one question
+### 4. Posture — one question
 
 Ask **one** question, then stop asking:
 
@@ -101,7 +140,7 @@ Ask **one** question, then stop asking:
 > tell me what you pay for and what to spare, and I'll cast against those.
 > **(3) Local + mixed** — tell me your provider or GPU setup.
 
-### 4. Cast
+### 5. Cast
 
 - **(1) Free-first** → `presets/free-first.json`, cast **verbatim**
   (Basis: `preset`).
@@ -121,7 +160,7 @@ Show the table:
 then the **full JSON**. Your own dial opinions travel only as an addendum after
 the table — "Want my picks for effort levels? Say the word." — never pre-filled.
 
-### 5. Approve & write
+### 6. Approve & write
 
 Scope question (rule 5), then explicit approval, then:
 
@@ -131,7 +170,7 @@ node "<skill-dir>/scripts/config.mjs" write --scope global|project [--cwd <dir>]
 node "<skill-dir>/scripts/config.mjs" load --cwd "$PWD"    # confirm
 ```
 
-### 6. Preambles
+### 7. Preambles
 
 Adapt `templates/preambles.example.md` to the actual cast: update each role's
 example-cast parenthetical to the real member; keep the standing rules. Show the
@@ -144,20 +183,9 @@ If a preambles file already exists, show what changes before overwriting.
 Note it is a family convention: relays do not read it automatically — the
 orchestrator prepends the matching role block to every brief.
 
-### 7. Gear
-
-Check each role's skill packs against `references/gear.md`; report a short
-checklist and offer install commands for what's missing. Two runtime
-requirements worth stating plainly:
-
-- Relays resolve `--lane` through the **`delegate-setup`** skill installed beside
-  them — keep it installed (`npx skills add amElnagdy/delegate-skills -g -y`).
-- The `review-main` / `review-debate` lanes need **`debate-review`**
-  (`npx skills add amElnagdy/review-skills -g -y`).
-
 ### 8. Verify & hand off
 
-- `config.mjs load` shows the cast (already done in step 5).
+- `config.mjs load` shows the cast (already done in step 6).
 - Resolve every lane with its own implementer:
 
 ```bash
@@ -178,12 +206,14 @@ node ~/.agents/skills/debate-review/scripts/review-pr.mjs --check
 
 > **User:** set up my fleet, I'm broke.
 >
-> **Council:** discover → "opencode and agy detected; opencode models reported."
-> → posture 1 → propose `presets/free-first.json` verbatim (Basis: `preset`).
+> **Council:** arm → `packs.json` read; the delta is the UI tier plus Ponytail;
+> one table shown, one approval, `delegate-skills` installed first.
+> → discover → "opencode and agy detected; opencode models reported."
+> → load → nothing configured. → posture 1 → propose `presets/free-first.json`
+> verbatim (Basis: `preset`).
+> → ask: cast a third judge for the plan debate? Yes → `plan-debate` onto agy Opus.
 > → show table + JSON → approve → validate → `write --scope global` → load ok.
 > → preambles adapted to the free-first members, shown, written.
-> → gear: relays ok · review pair ok · ponytail ok — three UI packs missing,
-> offered.
 > → pulse: `review-main ok · review-debate ok`.
 > → *"The fellowship is mustered. Load `$gandalf` for daily ops."*
 
@@ -191,7 +221,8 @@ node ~/.agents/skills/debate-review/scripts/review-pr.mjs --check
 
 | File | Contents |
 |---|---|
+| `packs.json` (this skill's folder) | The manifest — what to install and what to credit |
 | `references/casting.md` | Role profiles, budget postures, casting + Basis rules |
-| `references/gear.md` | Role → skill packs + install commands |
+| `references/arming.md` | Tiers, install order, per-role mapping |
 | `NOTICE.md` | MIT attribution for the vendored engine |
 | `scripts/` | Vendored discovery/config/lane engine (delegate-setup v0.5.0) |

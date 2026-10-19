@@ -1,9 +1,12 @@
 # Casting the fellowship — roles, members, dials
 
-gandalf leads eight roles: six that walk (implementers) and two that judge
-(reviewers). The roles are **fixed wire names** — `delegate-setup` resolves lanes by
-them, and `debate-review` expects `review-main` and `review-debate` by name. The
-members behind the roles are yours: any delegation-capable CLI + model.
+gandalf leads nine roles: six that walk (implementers) and three that judge
+(`plan-debate` on the plan, `review-main` and `review-debate` on the diff). The
+roles are **fixed wire names** — `delegate-setup` resolves lanes by them, and
+`debate-review` expects `review-main` and `review-debate` by name. The members
+behind the roles are yours: any delegation-capable CLI + model. `plan-debate` is the
+optional third judge — the council asks before casting it, and the fleet is legal
+without it. Protocol: `references/plan-debate.md`.
 
 ## The roles
 
@@ -15,8 +18,13 @@ members behind the roles are yours: any delegation-capable CLI + model.
 | `devops` | fast; deterministic edits | pipelines, workflows, hooks |
 | `chores` | cheap; steady | bumps, renames, cleanups |
 | `complex` | frontier reasoning — the premium seat | the Balrog: gnarly architecture, subtle concurrency, long marches |
+| `plan-debate` | a strong, *different* reasoning model | the plan's challenger — before anything is dispatched |
 | `review-main` | a second opinion; any budget | debate-review main pass |
 | `review-debate` | a different, stronger challenger | debate-review challenger |
+
+Cast `plan-debate` onto the strongest model that is **not** the orchestrator's own:
+a plan debated against itself proves nothing. Uncast, it falls back to the
+`review-debate` seat.
 
 ## How to cast a role
 
@@ -53,6 +61,7 @@ out, never commits — so the loop never changes when you re-cast a role.
 | `devops` | `opencode/nemotron-3.5-lightning-free` | small and fast |
 | `chores` | `opencode/longcat-2.5-preview-free` | long-context mechanics, cheapest seat |
 | `complex` | `agy: claude-opus-4-6-thinking` | frontier reasoning, one deep pass |
+| `plan-debate` | `agy: claude-opus-4-6-thinking` | the plan's challenger (Radagast) |
 | `review-main` | `opencode/big-pickle` | free, opinionated debate partner |
 | `review-debate` | `agy: claude-opus-4-6-thinking` | the challenger |
 
@@ -119,7 +128,8 @@ label for agy. Start from `presets/free-first.json` or `templates/fleet.template
 - **Cast to budget.** Strength where the road is dark, cheap where it's flat. The
   shipped preset happens to be free-first (that's how gandalf was born) — the
   method stays identical on a subscription or local fleet.
-- **Premium, deliberately.** Keep the `complex` seat (and one strong reviewer)
-  reserved. One deep pass on a frontier model beats ten retries on a cheap one.
+- **Premium, deliberately.** Keep the `complex` seat and the judging seats
+  (`plan-debate`, `review-debate`) reserved. One deep pass on a frontier model beats
+  ten retries on a cheap one.
 - **Re-cast freely.** A one-line change moves a role; nothing else in the loop
   notices.

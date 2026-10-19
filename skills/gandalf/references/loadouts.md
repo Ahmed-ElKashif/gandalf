@@ -18,7 +18,27 @@ this file.
 | Ponytail | `npx skills add DietrichGebert/ponytail -g -y` | `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help` |
 | UI evidence | `npx skills add amelnagdy/ui-review-loop -g -y` | `ui-review-loop` |
 | Browser backend | `npx skills add vercel-labs/agent-browser -g -y` | `agent-browser` (used by ui-review-loop) |
-| Security | `npx skills add getsentry/skills -g -y -s security-review` | `security-review` |
+
+**Not in Core:** `security-review` (`getsentry/skills`, Apache-2.0, tier `optional`)
+is deliberately outside the loop — a separate skill the user invokes when they want a
+security pass, not a guard gate. See `gates.md`.
+
+`packs.json` (in the `council-of-elrond` skill) is the canonical list (tiers,
+licences, install order, the README credits). This file is the per-role narrative.
+
+## `orchestrator` — the guide
+
+Not a lane; the seat you are sitting in. The loadout here is aimed at *you*, not at
+a relay: they are the skills the orchestrator runs in its own session.
+
+| Pack | Command | Ships |
+|---|---|---|
+| Plan discipline | `npx skills add obra/superpowers -g -y -s writing-plans executing-plans` | `writing-plans` shapes the brief the plan debate attacks; `executing-plans` for multi-step landings |
+| Interrogation | `npx skills add mattpocock/skills -g -y -s grilling to-tickets code-review` | `grilling` empties the request of assumptions, `to-tickets` splits the plan, `code-review` is the diff pass |
+| Guards | `npx skills add amElnagdy/guard-skills -g -y` | `clean-code-guard` / `test-guard` / `docs-guard` — they run *in the orchestrator session* |
+
+`grilling` and `code-review` auto-trigger; `to-tickets` and the `*-guard` skills are
+user-invoked and must be **named** in the flow to fire.
 
 ## `feature` — the all-rounder
 
@@ -52,8 +72,8 @@ Plus the discipline pair (also `bugfix`): `systematic-debugging` and
 
 | Pack | Command | Ships |
 |---|---|---|
-| Superpowers subset | `npx skills add obra/superpowers -g -y -s systematic-debugging verification-before-completion writing-plans executing-plans` | the TDD/debug/verify discipline |
-| Matt's engineering kit | `npx skills add mattpocock/skills -g -y -s diagnosing-bugs tdd codebase-design domain-modeling to-spec improve-codebase-architecture setup-pre-commit writing-for-agents wizard` | root-cause diagnosis, spec-first refactors, pre-commit setup |
+| Superpowers subset | `npx skills add obra/superpowers -g -y -s systematic-debugging verification-before-completion writing-plans executing-plans receiving-code-review` | the TDD/debug/verify discipline |
+| Matt's engineering kit | `npx skills add mattpocock/skills -g -y -s diagnosing-bugs tdd codebase-design domain-modeling to-spec improve-codebase-architecture setup-pre-commit writing-for-agents wizard grilling to-tickets code-review` | root-cause diagnosis, spec-first refactors, pre-commit setup |
 
 ## `devops` — the plumber
 
@@ -74,10 +94,25 @@ No dedicated pack: the mechanic borrows from the kit above —
 The model is the loadout. Its preamble (slow & thorough, plan written into the
 run, verify between steps) is what shapes the pass; no skill packs required.
 
-## `review-main` / `review-debate` — the judges
+## `plan-debate` / `review-main` / `review-debate` — the judges
 
-- `debate-review` owns both lanes (read-only by construction) — main pass +
-  challenger. Health pulse: `node …/debate-review/scripts/review-pr.mjs --check`.
+Three seats, one loadout. A judge needs to invent the case the author did not, find
+the root cause in the diff, and take criticism without capitulating to it.
+
+- `domain-modeling` — invent the edge-case scenarios the plan (or diff) forgot.
+- `systematic-debugging` — the root-cause ladder; a judge who names a symptom is
+  not a judge.
+- `receiving-code-review` — how to hold a position under pushback and how to yield
+  when the objection is right. The anti-sycophancy discipline; without it a
+  challenger folds on the second reply.
+
+Lane wiring:
+
+- `plan-debate` — Gate 1, the plan's challenger, read-only. Protocol:
+  `plan-debate.md`. Falls back to the `review-debate` seat when uncast.
+- `review-main` / `review-debate` — Gate 3. `debate-review` owns both lanes
+  (read-only by construction) — main pass + challenger. Health pulse:
+  `node …/debate-review/scripts/review-pr.mjs --check`.
 - `babysit-pr` runs the post-review rounds.
 - The guards (`clean-code-guard` / `test-guard` / `docs-guard`) run in the
   orchestrator session on every diff — see `gates.md`.

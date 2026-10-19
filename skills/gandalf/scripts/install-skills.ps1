@@ -1,64 +1,82 @@
-# gandalf — install the fellowship's gear (global scope)
-# Installs every skill pack referenced by references/loadouts.md, via the skills CLI,
-# so all skill-aware agents on this machine pick them up.
+# gandalf - arm the fellowship (global scope, Windows convenience)
 #
-# Usage:      pwsh -File scripts/install-skills.ps1   # run from this skill's directory
-#             pwsh -File scripts/install-skills.ps1 -SkipStackPacks   # skip the repo-framework packs
+# Reads packs.json from the council-of-elrond skill beside it - the single source of
+# truth for what to install and what to credit - and runs the install command listed
+# there, in file order. delegate-skills is first in that file and installs first, so
+# the relays and the delegate-setup engine land before anything is cast.
+#
+# This script is a convenience for Windows / offline use. The recommended path is
+# the council-of-elrond skill, which arms the machine from the same file, shows one
+# delta table, and takes one approval. Neither path invents an install list.
+#
+# Usage:      pwsh -File scripts/install-skills.ps1                  # core + ui (the default)
+#             pwsh -File scripts/install-skills.ps1 -SkipStackPacks  # core + ui only (same as default)
+#             pwsh -File scripts/install-skills.ps1 -All             # everything except `optional`
+#             pwsh -File scripts/install-skills.ps1 -All -IncludeOptional
 #
 # Requires:   Node 18+ (npx). Optional: gh (PR lanes), ffmpeg (ui-review-loop recording).
+#
+# Note: keep this file ASCII-only. Windows PowerShell 5.1 reads it without a BOM as
+# ANSI, and a UTF-8 em dash decodes into a stray quote character.
 
-param([switch]$SkipStackPacks)
+param(
+    [switch]$SkipStackPacks,
+    [switch]$All,
+    [switch]$IncludeOptional
+)
 
 $ErrorActionPreference = 'Continue'
 
-function Install-Pack {
-    param([string]$Repo, [string[]]$SkillNames)
-    $cmd = @('--yes', 'skills', 'add', $Repo, '-g', '-y')
-    if ($SkillNames) { $cmd += '-s'; $cmd += $SkillNames }
-    $label = if ($SkillNames) { "$Repo ($($SkillNames -join ', '))" } else { $Repo }
-    Write-Host "==> $label" -ForegroundColor Cyan
-    & npx @cmd
+# packs.json ships inside the council-of-elrond skill, so it survives install:
+#   dev clone        <repo>/skills/gandalf      -> ../council-of-elrond/packs.json
+#   installed store  ~/.agents/skills/gandalf   -> ../council-of-elrond/packs.json
+$packsFile = Join-Path $PSScriptRoot '..\..\council-of-elrond\packs.json'
+if (-not (Test-Path $packsFile)) {
+    Write-Host "packs.json not found at $packsFile" -ForegroundColor Red
+    Write-Host "Install council-of-elrond beside this skill, or run this from the repository clone." -ForegroundColor Red
+    exit 1
+}
+
+$manifest = Get-Content -Raw $packsFile | ConvertFrom-Json
+$defaultTiers = @($manifest.defaultTiers)
+
+function Select-Tiers {
+    if ($All) {
+        $tiers = @($manifest.packs | ForEach-Object { $_.tier } | Select-Object -Unique)
+    } else {
+        $tiers = $defaultTiers
+    }
+    if (-not $IncludeOptional) { $tiers = $tiers | Where-Object { $_ -ne 'optional' } }
+    return @($tiers)
+}
+
+$wanted = Select-Tiers
+$skipped = @()
+
+Write-Host "`n=== Arming from packs.json (tiers: $($wanted -join ', ')) ===" -ForegroundColor Green
+
+foreach ($pack in $manifest.packs) {
+    if ($wanted -notcontains $pack.tier) { $skipped += $pack; continue }
+
+    $tokens = $pack.install -split '\s+'
+    if ($tokens[0] -ne 'npx') {
+        Write-Host "    $($pack.repo): install command is not an npx invocation - skipped" -ForegroundColor Yellow
+        continue
+    }
+    $npxArgs = @('--yes') + $tokens[1..($tokens.Count - 1)]
+
+    Write-Host "==> $($pack.repo)  [$($pack.tier)]" -ForegroundColor Cyan
+    & npx @npxArgs
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "    pack failed (exit $LASTEXITCODE) — continuing" -ForegroundColor Yellow
+        Write-Host "    pack failed (exit $LASTEXITCODE) - continuing" -ForegroundColor Yellow
     }
 }
 
-Write-Host "`n=== Core machinery ===" -ForegroundColor Green
-Install-Pack 'amElnagdy/delegate-skills'
-Install-Pack 'amElnagdy/review-skills'
-Install-Pack 'amElnagdy/guard-skills'
-Install-Pack 'DietrichGebert/ponytail'
-Install-Pack 'amelnagdy/ui-review-loop'
-Install-Pack 'vercel-labs/agent-browser'
-Install-Pack 'getsentry/skills' @('security-review')
-
-Write-Host "`n=== Spec, planning & debug discipline ===" -ForegroundColor Green
-Install-Pack 'obra/superpowers' @('systematic-debugging', 'verification-before-completion', 'writing-plans', 'executing-plans')
-Install-Pack 'mattpocock/skills' @('diagnosing-bugs', 'tdd', 'codebase-design', 'domain-modeling', 'to-spec', 'improve-codebase-architecture', 'setup-pre-commit', 'writing-for-agents', 'wizard')
-
-Write-Host "`n=== UI craft ===" -ForegroundColor Green
-Install-Pack 'emilkowalski/skills'
-Install-Pack 'Leonxlnx/taste-skill'
-Install-Pack 'ibelick/ui-skills'
-Install-Pack 'anthropics/skills' @('frontend-design')
-Install-Pack 'greensock/gsap-skills'
-Install-Pack 'vercel-labs/agent-skills'
-
-if (-not $SkipStackPacks) {
-    Write-Host "`n=== Stack packs (feature lane) ===" -ForegroundColor Green
-    Install-Pack 'supabase/agent-skills'
-    Install-Pack 'prisma/skills'
-    Install-Pack 'mongodb/agent-skills'
-    Install-Pack 'kadajett/agent-nestjs-skills'
-    Install-Pack 'wshobson/agents' @('nextjs-app-router-patterns', 'tailwind-design-system', 'typescript-advanced-types')
-    Install-Pack 'shadcn-ui/ui'
-    Install-Pack 'langchain-ai/langchain-skills'
+if ($skipped.Count -gt 0) {
+    Write-Host "`n=== Not installed (offer these per repo) ===" -ForegroundColor Green
+    $skipped | ForEach-Object { Write-Host "  [$($_.tier)] $($_.repo) - $($_.why)" }
+    Write-Host "`n  Re-run with -All to take everything except 'optional'." -ForegroundColor DarkGray
 }
-
-Write-Host "`n=== DevOps & CI ===" -ForegroundColor Green
-Install-Pack 'addyosmani/agent-skills' @('ci-cd-and-automation')
-Install-Pack 'wshobson/agents' @('github-actions-templates')
-Install-Pack 'github/awesome-copilot' @('github-actions-hardening')
 
 Write-Host "`n=== Installed (global) ===" -ForegroundColor Green
 & npx --yes skills ls -g

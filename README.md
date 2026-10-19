@@ -27,7 +27,7 @@ anything lands. Two skills:
 
 | Skill | Job |
 |---|---|
-| **[`council-of-elrond`](skills/council-of-elrond/SKILL.md)** | **Setup.** Convenes the council: discovers the CLIs on your machine, casts all eight roles onto the models you have (one question, at most), writes the fleet config, generates lane preambles, checks the gear, verifies the cast. |
+| **[`council-of-elrond`](skills/council-of-elrond/SKILL.md)** | **Setup.** Convenes the council: arms the machine from [`packs.json`](skills/council-of-elrond/packs.json), discovers the CLIs you have, casts all nine roles onto the models you have (one question, at most), writes the fleet config, generates lane preambles, verifies the cast. |
 | **[`gandalf`](skills/gandalf/SKILL.md)** | **Daily use.** Picks the lane, assembles the brief, dispatches the relay, runs the guards, reviews the diff — and never writes the code himself. |
 
 ## Install
@@ -75,13 +75,17 @@ npx skills add Ahmed-ElKashif/gandalf#v1.1.0
 > your own: `-a opencode claude-code cursor gemini-cli`. The canonical copy lands
 > in `~/.agents/skills/` either way.
 
-Then give the fellowship its gear — relays, guards, and the per-role packs:
+Then **arm the machine** — the fellowship's gear, installed in the order
+[`packs.json`](skills/council-of-elrond/packs.json) lists it:
 
 ```powershell
-skills/gandalf/scripts/install-skills.ps1
+skills/gandalf/scripts/install-skills.ps1      # core + ui
 ```
 
-Or role by role from [`skills/gandalf/references/loadouts.md`](skills/gandalf/references/loadouts.md).
+That is the Windows convenience path. The recommended one is the council skill
+(`$council-of-elrond`), which reads the same file, shows you the delta in one table,
+and takes one approval. Per-role detail:
+[`skills/gandalf/references/loadouts.md`](skills/gandalf/references/loadouts.md).
 
 ## Quickstart
 
@@ -98,15 +102,18 @@ Use $gandalf to have the feature lane implement the retry logic in src/sync/, th
 ```mermaid
 flowchart LR
   Y[You] --> O["Orchestrator (gandalf)"]
-  O -->|"lane + brief"| R[Relay]
+  O -->|"gate 1 — plan debate"| P{"plan holds?"}
+  P -->|no, re-plan| O
+  P -->|yes| R[Relay]
   R --> I["Implementer CLI (your models, headless)"]
-  I -->|"diff + report"| G["Guards (clean-code / test / docs)"]
-  G --> O
+  I -->|"diff + report"| G["Gates — lint/test/build + guards"]
+  G -->|"bounce: findings back, once"| R
+  G -->|pass| O
   O -->|"review + commit"| Y
 ```
 
-The council casts the fleet once; the loop runs every day. Every relay follows
-the same contract — self-contained brief in; structured report and a
+The council arms and casts the fleet once; the loop runs every day. Every relay
+follows the same contract — self-contained brief in; structured report and a
 not-yet-committed diff out; **never commits**: the commit belongs to the reviewer.
 
 ## gandalf — run the fellowship
@@ -139,10 +146,11 @@ deep pass.
 <img src="assets/gandalf-the-white.jpg" alt="Gandalf the White with staff" width="360">
 </div>
 
-### The eight roles
+### The roles
 
-The roles are fixed wire names (the machinery and the review duo address lanes by
-them); the members behind them are yours to cast:
+Nine: six that **walk**, three that **judge**. The roles are fixed wire names (the
+machinery and the review trio address lanes by them); the members behind them are
+yours to cast:
 
 | Role | What it needs | Carries |
 |---|---|---|
@@ -152,13 +160,14 @@ them); the members behind them are yours to cast:
 | `devops` | fast, deterministic | CI/CD packs + workflow hardening |
 | `chores` | cheap, steady | pre-commit setup + refactor planning |
 | `complex` | frontier reasoning (premium) | slow & thorough — one deep pass |
+| `plan-debate` | a strong, *different* reasoner | attacks the plan before dispatch |
 | `review-main` | a second opinion, any budget | debate-review main pass |
 | `review-debate` | a different, stronger challenger | debate-review challenger |
 
 ### The shipped preset — free-first
 
 This is the zero-budget starter gandalf was born from — six free OpenCode models,
-plus Antigravity's Opus for the two dark-road seats. Swap any line for your own
+plus Antigravity's Opus for the three dark-road seats. Swap any line for your own
 models and it's still the same skill
 ([`skills/gandalf/presets/free-first.json`](skills/gandalf/presets/free-first.json)):
 
@@ -170,6 +179,7 @@ models and it's still the same skill
 | `devops` | Nemotron 3.5 Lightning Free — fast |
 | `chores` | LongCat 2.5 Free — long-context mechanics |
 | `complex` | Claude Opus 4.6 Thinking (agy) — one deep pass |
+| `plan-debate` | Claude Opus 4.6 Thinking (agy) — the plan's challenger |
 | `review-main` | Big Pickle (free) |
 | `review-debate` | Claude Opus 4.6 Thinking (agy) |
 
@@ -219,16 +229,20 @@ Both relay recipes (opencode + agy, PowerShell and bash):
 **council-of-elrond** turns "I have some CLIs installed" into "I have a working
 fleet" in one pass:
 
-1. **Discover** — probes PATH for implementer CLIs: installed? authenticated?
+1. **Arm** — reads [`packs.json`](skills/council-of-elrond/packs.json), shows one delta table (what is
+   missing, its tier, its licence, the roles it serves), takes one approval, and
+   installs. `delegate-skills` first, always — so you can pick your implementers
+   before anything is cast. Re-arms show only what changed.
+2. **Discover** — probes PATH for implementer CLIs: installed? authenticated?
    which models?
-2. **One question** — budget posture: free-first / your subscriptions / local + mixed.
-3. **Cast** — all eight roles onto real models; every lane labelled with its Basis.
-4. **Write** — shows the table and the full JSON, gets your approval, validates,
+3. **One question** — budget posture: free-first / your subscriptions / local + mixed.
+4. **Cast** — all nine roles onto real models; every lane labelled with its Basis.
+   `plan-debate` is offered, never assumed.
+5. **Write** — shows the table and the full JSON, gets your approval, validates,
    writes `delegate-fleet.v1`.
-5. **Preambles** — generates `~/.config/delegate-skills/preambles.md` for the
+6. **Preambles** — generates `~/.config/delegate-skills/preambles.md` for the
    actual cast.
-6. **Gear + verify** — checks the loadouts, resolves every lane, runs the reviewer
-   health pulse.
+7. **Verify** — resolves every lane, runs the reviewer health pulse.
 
 It ships its own copy of the discovery/validation engine (vendored from
 [`amElnagdy/delegate-skills`](https://github.com/amElnagdy/delegate-skills), MIT —
@@ -246,14 +260,15 @@ assets/                      README images
 skills/
 ├── gandalf/
 │   ├── SKILL.md
-│   ├── references/          fleet · loadouts · frontend-formula · operations · gates
+│   ├── references/          fleet · loadouts · frontend-formula · plan-debate · operations · gates
 │   ├── presets/             free-first.json
 │   ├── templates/           fleet.template.json · preambles.example.md
-│   └── scripts/             install-skills.ps1
+│   └── scripts/             install-skills.ps1 (reads the council's packs.json)
 └── council-of-elrond/
     ├── SKILL.md
+    ├── packs.json           the manifest — what to install, and the credits source
     ├── NOTICE.md            MIT attribution for the vendored engine
-    ├── references/          casting · gear
+    ├── references/          casting · arming
     ├── presets/             free-first.json
     ├── templates/           preambles.example.md
     └── scripts/             vendored delegate-setup engine (config · discover · implementers · lane)
@@ -261,19 +276,45 @@ skills/
 
 ## Credits
 
-- Delegation & review machinery: [`amElnagdy/delegate-skills`](https://github.com/amElnagdy/delegate-skills),
-  [`amElnagdy/review-skills`](https://github.com/amElnagdy/review-skills),
-  [`amElnagdy/guard-skills`](https://github.com/amElnagdy/guard-skills) — MIT.
-  The `delegate-setup` engine is vendored into
-  [`council-of-elrond`](skills/council-of-elrond/NOTICE.md).
-- [`DietrichGebert/ponytail`](https://github.com/DietrichGebert/ponytail) — the ladder philosophy
-- [`obra/superpowers`](https://github.com/obra/superpowers), [`Leonxlnx/taste-skill`](https://github.com/Leonxlnx/taste-skill),
-  [`emilkowalski/skills`](https://github.com/emilkowalski/skills), [`vercel-labs/agent-skills`](https://github.com/vercel-labs/agent-skills),
-  [`greensock/gsap-skills`](https://github.com/greensock/gsap-skills), [`ibelick/ui-skills`](https://github.com/ibelick/ui-skills),
-  [`anthropics/skills`](https://github.com/anthropics/skills), plus the Supabase, Prisma, MongoDB,
-  shadcn, NestJS, and LangChain packs
-- Models: the free-first preset rides OpenCode's free tier and Antigravity (Google)
-- Images: Gandalf stills © Warner Bros. / New Line — included as a fan homage
+The fellowship stands on other people's work, and it says so. **This list is
+generated from [`packs.json`](skills/council-of-elrond/packs.json)** — the same file the council arms from —
+so nothing can be installed without being credited here, and nothing here is
+credited without being installed from there. Listed in install order.
+
+| Pack | Licence | Why it is here |
+|---|---|---|
+| [`amElnagdy/delegate-skills`](https://github.com/amElnagdy/delegate-skills) | MIT | the relays that run implementers headlessly, plus `delegate-setup` — the engine every `--lane` dispatch resolves through, vendored into [`council-of-elrond`](skills/council-of-elrond/NOTICE.md) |
+| [`amElnagdy/review-skills`](https://github.com/amElnagdy/review-skills) | MIT | `debate-review` (the two-lane diff debate) and `babysit-pr` |
+| [`amElnagdy/guard-skills`](https://github.com/amElnagdy/guard-skills) | MIT | `clean-code-guard`, `test-guard`, `docs-guard` — the judgment gates |
+| [`DietrichGebert/ponytail`](https://github.com/DietrichGebert/ponytail) | MIT | the ladder philosophy behind "the smallest change that works" |
+| [`obra/superpowers`](https://github.com/obra/superpowers) | MIT | `writing-plans`, `systematic-debugging`, `receiving-code-review` and the surrounding discipline |
+| [`mattpocock/skills`](https://github.com/mattpocock/skills) | MIT | `grilling`, `to-tickets`, `code-review`, `domain-modeling` — the orchestrator's interrogation and the judges' scenario-hunting |
+| [`amelnagdy/ui-review-loop`](https://github.com/amelnagdy/ui-review-loop) | unverified | recorded evidence for UI changes |
+| [`vercel-labs/agent-browser`](https://github.com/vercel-labs/agent-browser) | unverified | the browser backend `ui-review-loop` drives |
+| [`emilkowalski/skills`](https://github.com/emilkowalski/skills) | MIT | interface craft and motion — `emil-design-eng`, the `animate` family, `apple-design` |
+| [`Leonxlnx/taste-skill`](https://github.com/Leonxlnx/taste-skill) | MIT | art direction for public and marketing surfaces |
+| [`ibelick/ui-skills`](https://github.com/ibelick/ui-skills) | MIT | the UI systems kit — `baseline-ui`, `create-design-md`, accessibility, metadata |
+| [`anthropics/skills`](https://github.com/anthropics/skills) | unverified | `frontend-design`, for explicit visual-identity asks |
+| [`vercel-labs/agent-skills`](https://github.com/vercel-labs/agent-skills) | unverified | React best practices and view transitions |
+| [`greensock/gsap-skills`](https://github.com/greensock/gsap-skills) | MIT | GSAP timelines, only when GSAP is already a dependency |
+| [`supabase/agent-skills`](https://github.com/supabase/agent-skills) | unverified | Supabase / Postgres backends |
+| [`prisma/skills`](https://github.com/prisma/skills) | unverified | Prisma projects |
+| [`mongodb/agent-skills`](https://github.com/mongodb/agent-skills) | unverified | MongoDB schema and query work |
+| [`kadajett/agent-nestjs-skills`](https://github.com/kadajett/agent-nestjs-skills) | unverified | NestJS backends |
+| [`wshobson/agents`](https://github.com/wshobson/agents) | MIT | Next.js / Tailwind / TypeScript patterns and GitHub Actions templates |
+| [`shadcn-ui/ui`](https://github.com/shadcn-ui/ui) | unverified | shadcn component work |
+| [`langchain-ai/langchain-skills`](https://github.com/langchain-ai/langchain-skills) | unverified | LangChain / LangGraph projects |
+| [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills) | MIT | `ci-cd-and-automation` for the `devops` lane |
+| [`github/awesome-copilot`](https://github.com/github/awesome-copilot) | MIT | `github-actions-hardening` for every workflow edit |
+| [`getsentry/skills`](https://github.com/getsentry/skills) | Apache-2.0 | `security-review` — **outside the loop**, invoked on demand |
+
+`unverified` means the licence has not been checked yet. That is a to-do, not a
+claim — see the note in [`packs.json`](skills/council-of-elrond/packs.json).
+
+Also:
+
+- **Models** — the free-first preset rides OpenCode's free tier and Antigravity (Google).
+- **Images** — Gandalf stills © Warner Bros. / New Line, included as a fan homage.
 
 ## License
 

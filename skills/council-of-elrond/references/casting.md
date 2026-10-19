@@ -13,8 +13,24 @@ what the council needs to cast well.
 | `devops` | fast; deterministic edits | pipelines, workflows, hooks |
 | `chores` | cheap; steady | bumps, renames, cleanups |
 | `complex` | frontier reasoning — the premium seat | gnarly architecture, subtle concurrency, long marches |
+| `plan-debate` | a strong, **different** reasoning model | the plan debate, before anything is dispatched |
 | `review-main` | a second opinion; any budget | debate-review main pass |
 | `review-debate` | a different, stronger challenger | debate-review challenger |
+
+## The third judge — `plan-debate`
+
+Six roles **walk**, three **judge**: `plan-debate`, `review-main`, `review-debate`.
+`plan-debate` is the optional third judge — the seat that attacks the *plan* before
+a single hobbit is dispatched (gandalf skill, `references/plan-debate.md`).
+
+- **Ask about it** in the posture step: *"Want a third judging seat to stress-test
+  the plan before we dispatch?"* Then say plainly what happens if they decline —
+  the `review-debate` seat carries both jobs, and the cast is still legal.
+- Cast it onto the strongest model that is **not** the orchestrator's own. A plan
+  debated against itself proves nothing. Two seats on the same model is a
+  legitimate budget choice — but say so, so nobody mistakes it for a second opinion.
+- It needs no code skills: the loadout is `domain-modeling` (invent the edge cases
+  the plan forgot), `systematic-debugging`, `receiving-code-review`.
 
 ## How to cast a role
 
@@ -40,6 +56,7 @@ what the council needs to cast well.
 | `devops` | `opencode/nemotron-3.5-lightning-free` | small and fast |
 | `chores` | `opencode/longcat-2.5-preview-free` | long-context mechanics |
 | `complex` | `agy` — `claude-opus-4-6-thinking` | frontier, one deep pass |
+| `plan-debate` | `agy` — `claude-opus-4-6-thinking` | the plan's challenger (Radagast) |
 | `review-main` | `opencode/big-pickle` | free debate partner |
 | `review-debate` | `agy` — `claude-opus-4-6-thinking` | the challenger |
 

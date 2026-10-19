@@ -27,6 +27,10 @@
       "implementer": "agy",
       "model": "claude-opus-4-6-thinking"
     },
+    "plan-debate": {
+      "implementer": "agy",
+      "model": "claude-opus-4-6-thinking"
+    },
     "review-main": {
       "implementer": "opencode",
       "model": "opencode/big-pickle"

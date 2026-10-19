@@ -68,7 +68,8 @@ node "$env:USERPROFILE\.agents\skills\agy-delegate\scripts\relay.mjs" `
 
 Key flags:
 
-- `--lane complex` (or `review-debate`). The **model label is the effort** —
+- `--lane complex` (or `plan-debate`, `review-debate`). The **model label is the
+  effort** —
   `claude-opus-4-6-thinking`, `gemini-3.8-flash-high|medium|low`. `--effort` errors
   on thinking labels; swap the label instead.
 - `--read-only` = `--sandbox --dangerously-skip-permissions`: the run is confined to
@@ -95,6 +96,63 @@ Key flags:
 - **A new skill isn't visible to the interactive orchestrator** — restart the
   session. Headless implementers pick new skills up on every run.
 - **Relay usage errors exit 2 with no `result.json`** — fix the invocation.
+
+## Plan debate — the read-only attack (Gate 1)
+
+Radagast walks read-only: he must be able to read the repo the plan names, and must
+not be able to change it. Protocol: `references/plan-debate.md`.
+
+PowerShell:
+
+```powershell
+node "$env:USERPROFILE\.agents\skills\opencode-delegate\scripts\relay.mjs" `
+  --brief "C:\path\to\plan.txt" `
+  --cd "C:\path\to\repo" `
+  --lane plan-debate `
+  --read-only `
+  --timeout 20m `
+  --out-dir "C:\path\to\run-artifacts"
+```
+
+bash / macOS / Linux:
+
+```bash
+node ~/.agents/skills/opencode-delegate/scripts/relay.mjs \
+  --brief ./plan.txt \
+  --cd ./repo \
+  --lane plan-debate \
+  --read-only \
+  --timeout 20m \
+  --out-dir ./run-artifacts
+```
+
+- The brief **is** the plan (step 1 of the protocol). Fold the surviving objections
+  into it and the same document becomes the dispatch brief.
+- `--read-only` is not optional. A challenger that can edit the tree has stopped
+  being a challenger.
+- No `plan-debate` seat cast? Run it on `--lane review-debate` and say so in the
+  brief. Neither cast? Report the skipped gate; never simulate it.
+- It is only required for multi-file work, lane hand-offs, and `complex` lanes —
+  and the orchestrator always tells the user which of those it decided.
+
+## Bounce — sending findings back
+
+A guard verdict of **bounce** re-dispatches to the implementer's own session carrying
+only the findings (`references/gates.md`):
+
+```bash
+node ~/.agents/skills/opencode-delegate/scripts/relay.mjs \
+  --brief ./findings.txt \
+  --session ses_… \
+  --cd ./repo \
+  --out-dir ./run-artifacts
+```
+
+- `--session ses_…` (or `--resume-last`) keeps the context the implementer built.
+  The delta brief is the guard output verbatim — not the original task again.
+- One bounce per finding. A finding that survives a bounce is an **escalate** to the
+  `complex` lane, not a third round.
+- The re-run goes through the same gates. A bounce does not skip the pipeline.
 
 ## The health pulse
 
