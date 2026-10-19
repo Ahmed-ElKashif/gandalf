@@ -140,7 +140,18 @@ function resolveLaunch(impl) {
     const file = expandCandidate(raw);
     try {
       if (statSync(file).isFile()) {
-        return { path: file, command: process.execPath, prefixArgs: [file] };
+        // A `locate` candidate is either a Node bundle (.cjs/.mjs/.js — launched
+        // via process.execPath, the ZCode shape) or a native executable (an .exe
+        // off PATH — the agy shape). Launching a native binary with process.execPath
+        // makes node try to *execute it as JavaScript*, which fails with a
+        // syntax error and reports the implementer as unauthenticated with no
+        // models. `launcher` in the registry entry decides explicitly; when it is
+        // absent, infer from the extension rather than assuming a bundle.
+        const isJsBundle = /\.(?:cjs|mjs|js)$/i.test(file);
+        const useNodeLauncher = impl.locate?.launcher === "node" || (impl.locate?.launcher === undefined && isJsBundle);
+        return useNodeLauncher
+          ? { path: file, command: process.execPath, prefixArgs: [file] }
+          : { path: file, command: file, prefixArgs: [] };
       }
     } catch {
       // keep looking

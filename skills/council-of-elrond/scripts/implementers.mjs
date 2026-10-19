@@ -166,6 +166,24 @@ export const IMPLEMENTERS = Object.freeze([
       entry: "file",
       match: /\.db$/,
     },
+    // Measured: the Antigravity CLI installs to %LOCALAPPDATA%/agy/bin/agy.exe and
+    // adds that directory to the *User* PATH — which a process started before the
+    // install (or one launched by a shell that inherited only the Machine PATH)
+    // never sees. PATH is still tried first; this fallback is consulted only when
+    // `agy` is genuinely absent, so an on-PATH install behaves exactly as before.
+    locate: {
+      candidates: {
+        win32: [
+          "%LOCALAPPDATA%/agy/bin/agy.exe",
+          "%USERPROFILE%/.antigravity/bin/agy.exe",
+        ],
+        darwin: [
+          "/Applications/Antigravity.app/Contents/Resources/agy/bin/agy",
+          "~/.local/bin/agy",
+        ],
+        linux: ["~/.local/bin/agy", "/usr/local/bin/agy"],
+      },
+    },
     supports: ["model", "effort", "timeout", "readOnly"],
     winShell: false,
   },
