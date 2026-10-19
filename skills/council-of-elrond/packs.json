@@ -185,13 +185,8 @@
       "tier": "ui",
       "roles": ["ui"],
       "install": "npx skills add Leonxlnx/taste-skill -g -y",
-      "provides": [
-        "design-taste-frontend",
-        "minimalist-ui",
-        "high-end-visual-design",
-        "redesign-existing-projects"
-      ],
-      "why": "Art direction for public and marketing surfaces. Never load design-taste-frontend and minimalist-ui in the same dispatch."
+      "provides": ["design-taste-frontend"],
+      "why": "Art direction for public and marketing surfaces. The repo holds exactly one skill: `minimalist-ui` and `high-end-visual-design` moved to Leonxlnx/taste-skill-classics, and `redesign-existing-projects` is now part of design-taste-frontend, which audits an existing page in a real browser before changing it."
     },
     {
       "id": "ui-skills",

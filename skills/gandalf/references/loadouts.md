@@ -63,7 +63,7 @@ Plus the discipline pair (also `bugfix`): `systematic-debugging` and
 | Pack | Command | Highlights |
 |---|---|---|
 | Emil's craft + motion | `npx skills add emilkowalski/skills -g -y` | `emil-design-eng`, `animate` family, `mobile-native`, `review-animations`, `improve-animations`, `apple-design` |
-| Taste pack (art direction) | `npx skills add Leonxlnx/taste-skill -g -y` | `design-taste-frontend` (+ v1 / v2-experimental), `minimalist-ui`, `high-end-visual-design`, `redesign-existing-projects`, `imagegen-*` |
+| Taste pack (art direction) | `npx skills add Leonxlnx/taste-skill -g -y` | `design-taste-frontend` — one skill; it also audits an existing page before redesigning it. `minimalist-ui` and `high-end-visual-design` moved to `Leonxlnx/taste-skill-classics`, `imagegen-*` to `Leonxlnx/imagegen-skills` — install those separately if you want them. |
 | UI systems kit | `npx skills add ibelick/ui-skills -g -y` | `baseline-ui`, `improve-ui`, `create-design-md`, `fixing-accessibility`, `fixing-metadata`, `fixing-motion-performance`, `component-canvas`, `ui-skills-root` |
 | Frontend-design (identity asks) | `npx skills add anthropics/skills -g -y -s frontend-design` | `frontend-design` |
 | GSAP (only when GSAP is in the deps) | `npx skills add greensock/gsap-skills -g -y` | `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-react`, … |

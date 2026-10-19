@@ -26,8 +26,10 @@ direction per run.
 
 ## Arbitrations
 
-- **Never** load `design-taste-frontend` and `minimalist-ui` in the same dispatch —
-  they are opposing art directions.
+- One art direction per dispatch. `design-taste-frontend` is the only direction the
+  taste pack ships; if you also install one of its classics siblings from
+  `Leonxlnx/taste-skill-classics` (`minimalist-ui`, `high-end-visual-design`), treat
+  them as opposing directions and never load two in the same dispatch.
 - `frontend-design` only for identity asks, not for routine screens.
 - GSAP skills only when GSAP is in the deps; otherwise `animate` (CSS / WAAPI /
   Framer Motion).

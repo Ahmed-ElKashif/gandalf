@@ -75,9 +75,10 @@ Per surface:
 - React specifics → `vercel-react-best-practices`; transitions →
   `vercel-react-view-transitions`
 
-Arbitrations: never load `design-taste-frontend` and `minimalist-ui` in the same
-dispatch; `frontend-design` only for identity asks; GSAP skills only when GSAP is
-in deps.
+Arbitrations: one art direction per dispatch (`design-taste-frontend` is the only
+one the taste pack ships — its classics siblings live in
+`Leonxlnx/taste-skill-classics` and oppose it); `frontend-design` only for identity
+asks; GSAP skills only when GSAP is in deps.
 
 ## `bugfix` — the debugger *(example cast: opencode / nemotron-3-ultra-free)*
 
