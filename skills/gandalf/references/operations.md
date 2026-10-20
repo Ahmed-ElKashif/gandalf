@@ -154,7 +154,79 @@ node ~/.agents/skills/opencode-delegate/scripts/relay.mjs \
   `complex` lane, not a third round.
 - The re-run goes through the same gates. A bounce does not skip the pipeline.
 
-## The health pulse
+## Walking in parallel — `fellowship.mjs`
+
+One lane at a time is safe but serial. Lanes are independent by construction —
+different models, different loadouts, different files — so they can walk together.
+
+```bash
+node ~/.agents/skills/gandalf/scripts/fellowship.mjs --plan ./fellowship.json
+```
+
+Plan file:
+
+```json
+{
+  "repo": "C:/path/to/repo",
+  "base": "main",
+  "timeout": "30m",
+  "lanes": [
+    { "lane": "feature", "brief": "C:/path/to/feature.txt" },
+    { "lane": "ui",      "brief": "C:/path/to/ui.txt" },
+    { "lane": "chores",  "brief": "C:/path/to/chores.txt", "relay": "opencode" }
+  ]
+}
+```
+
+Key flags:
+
+- `--max <n>` (default **4**) bounds concurrency. Free tiers rate-limit per *account*,
+  not per process — measured: five concurrent free-model calls completed in 16s with no
+  429, so 4 leaves headroom. Raise it with evidence, not hope.
+- `--dry-run` prints the resolved worktrees, commands, and `tail -f` lines without
+  creating anything. Run it first.
+- `--no-worktree` shares one tree for every lane. It prints a warning, because two lanes
+  touching one file corrupt each other and serial dispatch is what hides that today.
+- `--keep-worktrees` is the default for **successful** lanes — their worktree holds the
+  diff until you merge it. A worktree is removed only when it is provably clean.
+
+### What isolation buys, and why it is the default
+
+Measured on a real five-lane run: the lanes touched five *disjoint* file sets — and that
+was only true because they ran **one at a time**, by hand. Parallel removes that accident
+of scheduling. Every writing lane therefore gets its own `git worktree` forked from
+`base`, and the orchestrator merges back in review order.
+
+Read-only lanes (`plan-debate`, `review-main`, `review-debate`, `security-review`) share
+the repo: they write nothing, so a checkout per run would buy nothing.
+
+Worktrees live beside the repo (`.gandalf-worktrees-<repo>/`), never inside it, so one
+lane's checkout never appears in another lane's `git status`.
+
+### Watching a lane
+
+The script prints, for every lane, both a live log and a resumable session:
+
+```bash
+tail -f "<runDir>/<lane>.log"                 # live, one Warp tab per lane
+opencode --session ses_… --continue           # the full transcript, after it ends
+```
+
+The orchestrator's own tab stays clean: dispatch is one command, and each hobbit reports
+into its own file. This is the visibility answer — a script cannot open Warp tabs
+(`warp.exe` is the Oz CLI, with no window/tab flags), so the flow hands you the commands
+and you open the tabs.
+
+### Reading the outcome
+
+`fellowship.mjs` exits **0** when every lane succeeded, **1** when any did not, **2** on a
+bad plan. Trust the relay's `result.json` over the exit code, and never assume a
+non-`completed` status means a model failure: no `result.json` means a bad invocation.
+
+A lane name must be a real wire name **and** cast in your fleet config — the script
+rejects anything else rather than let the relay silently fall back.
+
+
 
 ```bash
 node ~/.agents/skills/debate-review/scripts/review-pr.mjs --check

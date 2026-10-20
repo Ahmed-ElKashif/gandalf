@@ -19,6 +19,7 @@
 import { spawnSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const MIN_NODE = 22;
 const major = Number(process.versions.node.split(".")[0]);
@@ -236,7 +237,34 @@ function cmdStart({ url, fps = 5, video = false, redact }) {
 
   if (redact) round.redact = String(redact).split(",").map((s) => s.trim()).filter(Boolean);
 
-  ab(["open", url], { allowFail: true });
+  // Install the timeline recorder BEFORE the first navigation, so it is present on the
+  // page from the start. Without this the drain finds no `window.__rec` and every
+  // timeline-sourced atom (`--expect-value`, `--expect-focus`, `--expect-disabled`)
+  // reports "no timeline" — a silent hole in the evidence, not a failed assertion.
+  // fileURLToPath, not a hand-rolled replace: this repo's path contains spaces, and
+  // a raw URL pathname keeps them percent-encoded ("%20"), so fs would never find it.
+  const recorderPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "assets", "recorder.js");
+  const initArgs = fs.existsSync(recorderPath) ? ["--init-script", recorderPath] : [];
+  if (!initArgs.length) round.notes.push("timeline recorder asset not found — timeline atoms will report no timeline");
+
+  ab(["open", url, ...initArgs], { allowFail: true });
+
+  // The recorder is gated on a dev/test marker by design — it must never boot in
+  // production. The runner IS the recorder's owner, so it satisfies the gate here:
+  // set the localStorage flag, then start the recorder explicitly and report whether
+  // it actually came up. Without this the drain always finds zero frames and every
+  // timeline atom silently reports "no timeline".
+  if (initArgs.length) {
+    const boot = spawnSync(AB, ["eval", "(() => { try { localStorage.setItem('dom_recorder','on'); const started = window.__rec ? window.__rec.startRecorderIfEnabled() : false; if (window.__rec && !started) window.__rec.start(); const n = window.__rec ? window.__rec.dumpCompact().length : -1; return JSON.stringify({ started, frames: n }); } catch (e) { return JSON.stringify({ error: String(e) }); } })()"], {
+      encoding: "utf8", shell: false, timeout: 60000,
+    });
+    round.recorder = (boot.stdout || "").trim().slice(0, 300);
+    try {
+      const parsed = JSON.parse(JSON.parse(round.recorder));
+      if (parsed.error) round.notes.push(`timeline recorder failed to start: ${parsed.error}`);
+      else if (parsed.frames === 0) round.notes.push("timeline recorder started but recorded no boot frame");
+    } catch { round.notes.push(`timeline recorder state unreadable: ${round.recorder}`); }
+  }
   round.openedAt = nowIso();
 
   // Confirm the recorder / tool surface state immediately, so meta.json tells the truth.
@@ -283,7 +311,7 @@ function cmdRun({ args }) {
   process.exit(r.status || 0);
 }
 
-function cmdAssert({ tool, params, expectResultContains, expectHar, expectDomMutation, expectUrlChange, expectValue, expectFocus }) {
+function cmdAssert({ tool, params, expectResultContains, expectHar, expectDomMutation, expectUrlChange, expectValue, expectFocus, expectDisabled, expectEnabled }) {
   const round = readActive();
   if (!round) { console.error("palantir: no active round."); process.exit(1); }
   const pkg = pkgDir(round.id);
@@ -292,7 +320,7 @@ function cmdAssert({ tool, params, expectResultContains, expectHar, expectDomMut
   // Pull the page's timeline up to date before reading it. Without this, a state change
   // driven outside a wrapped `run` (or the tail of the last action) is invisible to the
   // assertion — the classic "it works but the check says no".
-  if (expectValue !== undefined || expectFocus || expectDomMutation) {
+  if (expectValue !== undefined || expectFocus || expectDomMutation || expectDisabled !== undefined || expectEnabled !== undefined) {
     const d = drainTimeline(round);
     if (d.landed) round.streams.dom = true;
     else if (!round.notes.includes(d.reason)) round.notes.push(d.reason);
@@ -402,6 +430,32 @@ function cmdAssert({ tool, params, expectResultContains, expectHar, expectDomMut
       }
     }
     results.push({ check: "focus moved", expect: String(expectFocus), ok, got: ok ? got : (timelineFrames ? "no matching focus event" : "no timeline") });
+  }
+
+  // `--expect-disabled <control>` / `--expect-enabled <control>`
+  // The control must be disabled (resp. enabled) in the LAST timeline frame that
+  // mentions it. This is the atom that catches a submit which never locks: the
+  // request fires, the button stays live, and a double-click sends two. Nothing
+  // else in the evidence package can see that — it is not a mutation, and the
+  // screenshot only shows one moment.
+  for (const [flag, wantDisabled, label] of [
+    [expectDisabled, true, "control disabled"],
+    [expectEnabled, false, "control enabled"],
+  ]) {
+    if (flag === undefined) continue;
+    let ok = false, got = null;
+    for (const f of timelineFrames || []) {
+      if (!f.controls) continue;
+      const hit = Object.keys(f.controls).find((k) => k.includes(String(flag)));
+      if (hit) got = `${hit}=${f.controls[hit]}`;
+      if (hit && f.controls[hit] === wantDisabled) { ok = true; break; }
+    }
+    results.push({
+      check: label,
+      expect: String(flag),
+      ok,
+      got: got || (timelineFrames ? "control not seen in any frame" : "no timeline"),
+    });
   }
 
   const verdictFile = path.join(pkg, "verdict.json");
@@ -560,6 +614,8 @@ try {
       expectUrlChange: flags["expect-url-change"],
       expectValue: flags["expect-value"],
       expectFocus: flags["expect-focus"],
+      expectDisabled: flags["expect-disabled"],
+      expectEnabled: flags["expect-enabled"],
     }); break;
     case "look": cmdLook({ state: flags.state, shot: flags.shot }); break;
     case "stop": cmdStop({ summary: flags.summary }); break;
@@ -573,6 +629,7 @@ try {
   assert  [--tool <name>] [--params <json>] [--expect-result-contains <s>]
           [--expect-har "POST /api/x 201"] [--expect-dom-mutation]
           [--expect-url-change <s>] [--expect-value "field=text"] [--expect-focus <sel>]
+          [--expect-disabled <control>] [--expect-enabled <control>]
   look    --state <name>
   stop    --summary "<one line, <=160 chars>"
   abort

@@ -81,6 +81,30 @@
     return out;
   }
 
+  /**
+   * Interactive controls and whether they are currently disabled. Keyed the same way
+   * as formValues (name, then id, then a short css-ish descriptor) so an assertion can
+   * name a control the way a human would. Only *disabled* controls are listed when
+   * compact — but we include every button/input so "it stayed enabled" is provable too.
+   */
+  function controlStates() {
+    const out = {};
+    try {
+      for (const el of document.querySelectorAll("button, input[type=submit], input[type=button], [role=button], fieldset")) {
+        const name = el.name || el.id || describe(el);
+        if (!name) continue;
+        // `disabled` on the element, or inherited from a disabled fieldset ancestor.
+        let disabled = !!el.disabled;
+        if (!disabled && el.closest) {
+          const fs = el.closest("fieldset[disabled]");
+          if (fs) disabled = true;
+        }
+        out[String(name).slice(0, 60)] = disabled;
+      }
+    } catch {}
+    return out;
+  }
+
   function nearestEvent() {
     if (!lastEvent) return null;
     const dt = now() - lastEvent.t;
@@ -126,6 +150,11 @@
         targets: targets.length > 1 ? targets : undefined,
         text: visibleText(),
         values: formValues(),
+        // Enabled/disabled state of every interactive control. A submit that kicks off
+        // work but never disables its button lets a double-click send two requests —
+        // invisible in a screenshot and in a mutation diff. Snapshot it per frame so
+        // `--expect-disabled` / `--expect-enabled` can prove the lock actually happened.
+        controls: controlStates(),
       });
     }, 40);
   }

@@ -90,7 +90,9 @@ was born from (free opencode lanes + agy Opus for the dark roads).
    `references/plan-debate.md`.
 2. **Dispatch** — write a self-contained brief: the task, constraints, acceptance
    criteria, "run the gates, report real evidence, do not commit". Prepend the role
-   block, run the relay (`references/operations.md` has the recipes).
+   block, run the relay (`references/operations.md` has the recipes). **More than one
+   lane?** Run them together with `fellowship.mjs` — N isolated worktrees, one live log
+   and one resumable session per lane (`references/operations.md`).
 3. **Review** — read the implementer's report, inspect the diff, re-run the project
    gates yourself.
 4. **Guards** — *"You shall not pass."* Code diff → `clean-code-guard`; tests →

@@ -69,12 +69,18 @@ runner can assert it today, and how you read it out of the timeline when it cann
 | `focus` | focus moves | `--expect-focus <sel>` | `focus` frame's `target` / `targets` |
 | `value` | typed value registers | `--expect-value "field=text"` | `state` / `mutation` frame `values` |
 | `tool` | WebMCP tool returns declared shape | `--tool` + `--expect-result-contains` | `tools.json` (`status` must be `completed`) |
-| `disable` | submit locks + feedback label | — | a mutation frame with an attribute change on the button |
+| `disable` | submit locks + feedback label | `--expect-disabled <control>` / `--expect-enabled <control>` | the last `controls` entry for that control |
 | `toggle` | open/closed flips | — | element present ↔ absent across two mutation frames |
 
-`disable` and `toggle` have **no flag yet**. They are real claims you can make by reading
-`dom.json`, but writing them as assertions would be a lie about what the tool checks. Read
-the frames and say what you saw.
+`disable` is a real atom: every timeline frame carries `controls` (a map of interactive
+control → disabled boolean), so `--expect-disabled submit` proves a submit actually locked
+and `--expect-enabled submit` proves it did **not** — which is how a double-submit hazard
+gets caught. It is the one claim no screenshot and no mutation diff can show: the request
+fires, the button stays live, and a second click sends a second request.
+
+`toggle` still has **no flag**. It is a real claim you can make by reading `dom.json`
+(element present ↔ absent across two frames), but writing it as an assertion would be a
+lie about what the tool checks. Read the frames and say what you saw.
 
 `tool` is this skill's addition. Prefer it where a tool exists — it asserts against
 structured output instead of inferring from pixels, and it fails loudly. A `tool`

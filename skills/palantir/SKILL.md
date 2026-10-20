@@ -148,11 +148,12 @@ timeline yourself — there is no flag for it yet, so do not write it as an asse
 | `--expect-url-change <s>` | the URL now contains the string | `get url` |
 | `--expect-value "field=text"` | the typed/filled value appears in the timeline's form values | timeline `values` |
 | `--expect-focus <sel>` | focus landed on the described element | timeline `focus` frame |
+| `--expect-disabled <control>` | the control is disabled in its last timeline frame (a submit that locked) | timeline `controls` |
+| `--expect-enabled <control>` | the control is **still enabled** — proves a double-submit hazard | timeline `controls` |
 
-Not yet a flag — read the timeline instead: `disable` (a submit locked while in flight)
-and `toggle` (an open/closed state flipped) appear as ordinary mutation frames with
-attribute changes. Asserting them means reading `dom.json`, not passing a flag. Say so
-plainly rather than inventing an atom that does not exist.
+Still not a flag — read the timeline instead: `toggle` (an open/closed state flipped) shows
+as element presence flipping across two frames. Asserting it means reading `dom.json`, not
+passing a flag. Say so plainly rather than inventing an atom that does not exist.
 
 A round with zero assertions proves only that commands exited 0.
 
