@@ -23,7 +23,7 @@ fails sends the work **back** — it is not a wall, it is a door with a hinge.
    | Production code | `clean-code-guard` |
    | Tests | `test-guard` |
    | Docs / README / changelog | `docs-guard` |
-   | UI changes | `ui-review-loop` (recorded browser evidence) |
+   | UI changes | the `qa` lane — a clean `palantir` round (the done-gate; see below) |
    | CI / workflows | `github-actions-hardening` |
 
 3. **Land** — the orchestrator commits. Implementers never commit.
@@ -120,14 +120,21 @@ Security review is not a gate in this loop. It is a separate skill
 security pass. Adding it to the every-diff pipeline would make it a rubber stamp;
 leaving it out keeps it meaningful. Point at it; do not run it by default.
 
-## ui-review-loop
+## palantír — the UI gate (lane `qa`)
 
-- A UI change is not done until the loop shows it working: recorded video + DOM
-  timeline + network evidence, reviewed on a local site.
-- Backend: the agent-browser CLI (`npx agent-browser` auto-installs on first run);
-  `ffmpeg` is required for recording.
-- Prefer it over screenshots — and over ad-hoc browser pokes — for anything a human
-  will look at.
+- A UI change is not done until `qa` has a **clean round**: the page's WebMCP tool calls,
+  the DOM timeline, and the network HAR, each asserted rather than eyeballed.
+- Run by the `qa` lane via the `palantir` skill (ships with this repo). Backend: the
+  agent-browser CLI; **WebMCP support is on by default** for a locally launched Chrome.
+- **Vision is one deliberate pass at the end**, on the states a human will judge — never
+  the mechanism. Interaction is proven from structured evidence.
+- Video is **optional** and is not the primary stream. If a round cites video, the file
+  must be confirmed present — recording fails silently when ffmpeg lacks the codec.
+- A red round is a **bounce to `ui`**, not a note on a finished job.
+- `qa` never authors the WebMCP tool file it consumes; `ui` provides it, gated to
+  test/dev. See the palantír skill, `references/webmcp.md`.
+- `ui-review-loop` (`amelnagdy`, tier `core`) is kept for the case where a human will
+  watch a video and comment. It is not this gate.
 
 ## debate-review
 

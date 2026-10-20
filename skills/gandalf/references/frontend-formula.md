@@ -10,8 +10,9 @@ direction per run.
   details that make software feel great).
 - The project's `DESIGN.md` — read it first. Its tokens and patterns win over generic
   taste. If absent, generate one with `create-design-md` and flag that in the report.
-- `ui-review-loop` — the done-gate: recorded evidence (video + DOM timeline),
-  not screenshots.
+- `ui-review-loop` — kept for the human-video case, not the gate.
+- The evidence gate lives with the **`qa` lane** (`palantír`), not here: `ui` builds,
+  `qa` verifies. Read that section before claiming done.
 
 ## Per surface
 
@@ -37,7 +38,12 @@ direction per run.
 
 ## The done-gate
 
-A UI change is not done until `ui-review-loop` shows it working in a real browser.
-Prerequisites: the agent-browser CLI (`npx agent-browser` auto-installs it on first
-use) and `ffmpeg` for recording. Screenshots alone don't count — the recorded round
-plus DOM timeline is the evidence a reviewer can actually check.
+A UI change is not done until the **`qa` lane** returns a clean round on it — `ui` does
+not certify its own work. `qa` runs `palantír`, which verifies through the page's own
+WebMCP tools plus the DOM timeline and the network HAR, and takes **one** deliberate
+vision pass on appearance. Screenshots alone don't count, and neither does a green
+command exit: the round's `meta.json` says which streams landed, and a round with no
+timeline and no tool call is a failed round no matter how clean the console looked.
+
+`ui` provides the gated WebMCP tool file the round consumes; `qa` never writes it.
+A red round is a **bounce to `ui`** — same lane, same session, findings as the brief.

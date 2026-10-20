@@ -14,7 +14,8 @@
 #             pwsh -File scripts/install-skills.ps1 -All             # everything except `optional`
 #             pwsh -File scripts/install-skills.ps1 -All -IncludeOptional
 #
-# Requires:   Node 18+ (npx). Optional: gh (PR lanes), ffmpeg (ui-review-loop recording).
+# Requires:   Node 18+ (npx). Optional: gh (PR lanes). ffmpeg is only needed if you
+#             record video - palantir's evidence does not depend on it.
 #
 # Note: keep this file ASCII-only. Windows PowerShell 5.1 reads it without a BOM as
 # ANSI, and a UTF-8 em dash decodes into a stray quote character.
@@ -60,7 +61,9 @@ foreach ($pack in $manifest.packs) {
 
     $tokens = $pack.install -split '\s+'
     if ($tokens[0] -ne 'npx') {
-        Write-Host "    $($pack.repo): install command is not an npx invocation - skipped" -ForegroundColor Yellow
+        # Packs that ship WITH this repo (palantir) have no npx command. Say so plainly
+        # rather than reporting a failure: the skill is already here.
+        Write-Host "    $($pack.repo): ships with this repo - $($pack.install)" -ForegroundColor DarkGray
         continue
     }
     $npxArgs = @('--yes') + $tokens[1..($tokens.Count - 1)]

@@ -4,7 +4,7 @@
   "_where": "This file lives inside the council-of-elrond skill on purpose. The skills CLI installs `skills/<name>/` and drops repo-root files, so a manifest at the repository root would not survive `npx skills add`. It ships here, with the engine that reads it. `scripts/install-skills.ps1` in the gandalf skill resolves the same path in a dev clone and in an installed ~/.agents/skills/ tree.",
   "defaultTiers": ["core", "ui"],
   "tiers": {
-    "core": "Every fleet. Relays, review pair, guards, the orchestrator and judging loadouts, UI evidence.",
+    "core": "Every fleet. Relays, review pair, guards, the orchestrator and judging loadouts, UI evidence (palantír), and the browser backend it drives.",
     "ui": "Default-on: the `ui` lane's craft packs.",
     "stack": "On demand — only for repos that actually use the framework.",
     "devops": "On demand — only for repos with CI to harden.",
@@ -127,6 +127,19 @@
       "why": "grilling interrogates the request until nothing is silently assumed; domain-modeling invents the edge-case scenarios the judging seats hunt with. Note most of this pack is user-invoked (disable-model-invocation), so the preambles must NAME them — an unnamed skill is inert."
     },
     {
+      "id": "palantir",
+      "owner": "lotr-fellowship",
+      "name": "Palantír",
+      "repo": "this repo — skills/palantir",
+      "url": "https://github.com/SASA-External/LOTR",
+      "license": "MIT",
+      "tier": "core",
+      "roles": ["qa"],
+      "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
+      "provides": ["palantir"],
+      "why": "OUR OWN child skill. UI verification through the page's own WebMCP tools plus the DOM timeline and the network HAR — structured evidence instead of a screenshot loop, with vision as ONE deliberate pass on appearance. Standalone: it does not depend on ui-review-loop at runtime, so it works where that skill is absent or its video half is broken. Derived from amElnagdy/ui-review-loop's recorder concept, credited above; re-shaped for a WebMCP-first, video-optional evidence model."
+    },
+    {
       "id": "ui-review-loop",
       "owner": "amelnagdy",
       "name": "UI Review Loop",
@@ -134,10 +147,10 @@
       "url": "https://github.com/amelnagdy/ui-review-loop",
       "license": "unverified",
       "tier": "core",
-      "roles": ["ui", "review-main", "review-debate"],
+      "roles": ["review-main", "review-debate"],
       "install": "npx skills add amelnagdy/ui-review-loop -g -y",
       "provides": ["ui-review-loop"],
-      "why": "A UI change is not done until the loop shows it working. Recorded evidence, not screenshots."
+      "why": "Kept for the operator-watches-video case and for the coverage-audit methodology palantír was derived from. NOT the ui or qa lane's evidence path any more — palantir is, because this loop's video is video-first and fails silently when ffmpeg lacks libx264."
     },
     {
       "id": "agent-browser",
@@ -147,10 +160,10 @@
       "url": "https://github.com/vercel-labs/agent-browser",
       "license": "unverified",
       "tier": "core",
-      "roles": ["ui"],
+      "roles": ["ui", "qa"],
       "install": "npx skills add vercel-labs/agent-browser -g -y",
       "provides": ["agent-browser"],
-      "why": "The browser backend ui-review-loop drives. ffmpeg is a separate system dependency for recording."
+      "why": "The browser backend palantír and ui-review-loop drive. Ships experimental WebMCP support ON by default for a locally launched Chrome (webmcp list/invoke/result/cancel), which is what palantir's tool-call evidence is built on. ffmpeg is a separate system dependency for recording."
     },
     {
       "id": "emilkowalski-skills",

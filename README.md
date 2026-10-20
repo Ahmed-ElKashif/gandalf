@@ -27,7 +27,7 @@ anything lands. Two skills:
 
 | Skill | Job |
 |---|---|
-| **[`council-of-elrond`](skills/council-of-elrond/SKILL.md)** | **Setup.** Convenes the council: arms the machine from [`packs.json`](skills/council-of-elrond/packs.json), discovers the CLIs you have, casts all nine roles onto the models you have (one question, at most), writes the fleet config, generates lane preambles, verifies the cast. |
+| **[`council-of-elrond`](skills/council-of-elrond/SKILL.md)** | **Setup.** Convenes the council: arms the machine from [`packs.json`](skills/council-of-elrond/packs.json), discovers the CLIs you have, casts all ten roles onto the models you have (one question, at most), writes the fleet config, generates lane preambles, verifies the cast. |
 | **[`gandalf`](skills/gandalf/SKILL.md)** | **Daily use.** Picks the lane, assembles the brief, dispatches the relay, runs the guards, reviews the diff — and never writes the code himself. |
 
 ## Install
@@ -148,9 +148,9 @@ deep pass.
 
 ### The roles
 
-Nine: six that **walk**, three that **judge**. The roles are fixed wire names (the
-machinery and the review trio address lanes by them); the members behind them are
-yours to cast:
+Ten: seven that **walk**, three that **judge**, and one that **verifies**. The roles are
+fixed wire names (the machinery and the review trio address lanes by them); the members
+behind them are yours to cast:
 
 | Role | What it needs | Carries |
 |---|---|---|
@@ -160,28 +160,41 @@ yours to cast:
 | `devops` | fast, deterministic | CI/CD packs + workflow hardening |
 | `chores` | cheap, steady | pre-commit setup + refactor planning |
 | `complex` | frontier reasoning (premium) | slow & thorough — one deep pass |
+| `qa` | **vision-capable**, sceptical, drives a browser | `palantír` — the UI done-gate |
 | `plan-debate` | a strong, *different* reasoner | attacks the plan before dispatch |
 | `review-main` | a second opinion, any budget | debate-review main pass |
 | `review-debate` | a different, stronger challenger | debate-review challenger |
 
+`qa` is a **gate, not an advisor**: a UI change isn't done until `qa` returns a clean
+palantír round on it, and a red round bounces back to `ui`. It is the one seat where
+**vision** is mandatory — appearance is a real question no other evidence stream can
+answer — so if your budget affords a single vision model, it belongs here. Full method:
+[`skills/palantir/SKILL.md`](skills/palantir/SKILL.md).
+
 ### The shipped preset — free-first
 
-This is the zero-budget starter gandalf was born from — six free OpenCode models,
-plus Antigravity's Opus for the three dark-road seats. Swap any line for your own
-models and it's still the same skill
+This is the zero-budget starter gandalf was born from — free OpenCode models, plus
+Antigravity's Opus for the three dark-road seats. Swap any line for your own models and
+it's still the same skill
 ([`skills/gandalf/presets/free-first.json`](skills/gandalf/presets/free-first.json)):
 
 | Role | Member (preset) |
 |---|---|
-| `feature` | DeepSeek V4.1 Free (`high`) — the strongest free agentic coder |
-| `ui` | GLM 5.3 Free (`high`) — multimodal, long-horizon |
+| `feature` | DeepSeek V4.1 Free — the strongest free agentic coder |
+| `ui` | GLM 5.3 Free (`high`) — long-horizon craft; picks among the frontend skills |
 | `bugfix` | Nemotron 3 Ultra Free — reasoning-heavy |
 | `devops` | Nemotron 3.5 Lightning Free — fast |
-| `chores` | LongCat 2.5 Free — long-context mechanics |
+| `chores` | MiniMax M3.1 Flash Free — the cheapest seat |
 | `complex` | Claude Opus 4.6 Thinking (agy) — one deep pass |
+| `qa` | Nemotron 3.5 Super VL Free — **the only free vision model** in the set |
 | `plan-debate` | Claude Opus 4.6 Thinking (agy) — the plan's challenger |
-| `review-main` | Big Pickle (free) |
+| `review-main` | LongCat 2.5 Preview Free — probe-selected second opinion |
 | `review-debate` | Claude Opus 4.6 Thinking (agy) |
+
+The honest trade of a free-only fleet: `complex`, `plan-debate` and `review-debate` all
+ride agy Opus, so the two debate judges are the same model. Say so if you cast it that
+way — two seats on one model is a legitimate budget choice, but nobody should mistake it
+for a second opinion.
 
 ### Bring your own fellowship
 
@@ -236,7 +249,7 @@ fleet" in one pass:
 2. **Discover** — probes PATH for implementer CLIs: installed? authenticated?
    which models?
 3. **One question** — budget posture: free-first / your subscriptions / local + mixed.
-4. **Cast** — all nine roles onto real models; every lane labelled with its Basis.
+4. **Cast** — all ten roles onto real models; every lane labelled with its Basis.
    `plan-debate` is offered, never assumed.
 5. **Write** — shows the table and the full JSON, gets your approval, validates,
    writes `delegate-fleet.v1`.
@@ -272,6 +285,11 @@ skills/
     ├── presets/             free-first.json
     ├── templates/           preambles.example.md
     └── scripts/             vendored delegate-setup engine (config · discover · implementers · lane)
+└── palantir/                OUR OWN child skill — the qa lane's UI evidence contract
+    ├── SKILL.md
+    ├── references/          webmcp · timeline · coverage-audit · limits · formats
+    ├── scripts/             round.mjs — the evidence runner (start · run · assert · look · stop)
+    └── assets/              recorder.js — the DOM timeline (derived from ui-review-loop)
 ```
 
 ## Credits
@@ -289,8 +307,9 @@ credited without being installed from there. Listed in install order.
 | [`DietrichGebert/ponytail`](https://github.com/DietrichGebert/ponytail) | MIT | the ladder philosophy behind "the smallest change that works" |
 | [`obra/superpowers`](https://github.com/obra/superpowers) | MIT | `writing-plans`, `systematic-debugging`, `receiving-code-review` and the surrounding discipline |
 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | MIT | `grilling`, `to-tickets`, `code-review`, `domain-modeling` — the orchestrator's interrogation and the judges' scenario-hunting |
-| [`amelnagdy/ui-review-loop`](https://github.com/amelnagdy/ui-review-loop) | unverified | recorded evidence for UI changes |
-| [`vercel-labs/agent-browser`](https://github.com/vercel-labs/agent-browser) | unverified | the browser backend `ui-review-loop` drives |
+| **`palantír`** — this repo ([`skills/palantir/`](skills/palantir/)) | MIT | **our own child skill.** UI verification through the page's own WebMCP tools plus the DOM timeline and the network HAR — structured evidence instead of a screenshot loop, with vision as *one* deliberate pass on appearance. The `qa` lane's whole method |
+| [`amelnagdy/ui-review-loop`](https://github.com/amelnagdy/ui-review-loop) | unverified | kept for the case where a human will watch a video and comment — **not** the `ui`/`qa` evidence path any more. palantír's recorder is derived from it |
+| [`vercel-labs/agent-browser`](https://github.com/vercel-labs/agent-browser) | unverified | the browser backend `palantír` drives. Its experimental WebMCP support is **on by default** for a locally launched Chrome — the channel palantír's tool-call evidence rides |
 | [`emilkowalski/skills`](https://github.com/emilkowalski/skills) | MIT | interface craft and motion — `emil-design-eng`, the `animate` family, `apple-design` |
 | [`Leonxlnx/taste-skill`](https://github.com/Leonxlnx/taste-skill) | MIT | art direction for public and marketing surfaces |
 | [`ibelick/ui-skills`](https://github.com/ibelick/ui-skills) | MIT | the UI systems kit — `baseline-ui`, `create-design-md`, accessibility, metadata |

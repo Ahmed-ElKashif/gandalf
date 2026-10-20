@@ -1,7 +1,9 @@
 # Casting the fellowship — roles, members, dials
 
-gandalf leads nine roles: six that walk (implementers) and three that judge
-(`plan-debate` on the plan, `review-main` and `review-debate` on the diff). The
+gandalf leads ten roles: seven that walk (implementers), two that judge
+(`review-main` and `review-debate` on the diff), and one that **verifies**
+(`qa` — the palantír that watches a running UI). `plan-debate` is the optional third
+judge, which attacks the plan before anything is dispatched. The
 roles are **fixed wire names** — `delegate-setup` resolves lanes by them, and
 `debate-review` expects `review-main` and `review-debate` by name. The members
 behind the roles are yours: any delegation-capable CLI + model. `plan-debate` is the
@@ -18,6 +20,7 @@ without it. Protocol: `references/plan-debate.md`.
 | `devops` | fast; deterministic edits | pipelines, workflows, hooks |
 | `chores` | cheap; steady | bumps, renames, cleanups |
 | `complex` | frontier reasoning — the premium seat | the Balrog: gnarly architecture, subtle concurrency, long marches |
+| `qa` | **vision-capable**; patient, sceptical, drives a browser | verifying a running UI — the done-gate for `ui` |
 | `plan-debate` | a strong, *different* reasoning model | the plan's challenger — before anything is dispatched |
 | `review-main` | a second opinion; any budget | debate-review main pass |
 | `review-debate` | a different, stronger challenger | debate-review challenger |
@@ -25,6 +28,15 @@ without it. Protocol: `references/plan-debate.md`.
 Cast `plan-debate` onto the strongest model that is **not** the orchestrator's own:
 a plan debated against itself proves nothing. Uncast, it falls back to the
 `review-debate` seat.
+
+`qa` is a **gate, not an advisor**: a UI change is not "done" until `qa` has a clean
+round on it. It runs `palantír`, which verifies through the page's own WebMCP tools plus
+the DOM timeline and the network HAR, and takes **one** deliberate vision pass on
+appearance. See `references/loadouts.md` and the palantír skill itself.
+
+Cast `qa` onto a model with **vision** — the appearance pass is irreplaceable and no
+other stream can do it. A text-only model can run the mechanical half of palantír
+perfectly well, so if your budget allows only one vision seat, it belongs here.
 
 ## How to cast a role
 
@@ -51,19 +63,24 @@ out, never commits — so the loop never changes when you re-cast a role.
 
 ### free-first (the shipped preset)
 
-`presets/free-first.json` — six free OpenCode models + Antigravity for the dark roads:
+`presets/free-first.json` — free OpenCode models + Antigravity for the dark roads:
 
 | Role | Member | Why |
 |---|---|---|
-| `feature` | `opencode/deepseek-v4.1-flash-free` (variant `high`) | the strongest free agentic coder of its time (top usage share, ~90.6 Terminal-Bench / ~74.2 DeepSWE at build time) |
-| `ui` | `opencode/glm-5.3-flash-free` (variant `high`) | multimodal input + long-horizon coherence — what UI work asks for |
+| `feature` | `opencode/deepseek-v4.1-flash-free` | the strongest free agentic coder of its time (top usage share, ~90.6 Terminal-Bench / ~74.2 DeepSWE at build time) |
+| `ui` | `opencode/glm-5.3-flash-free` (variant `high`) | long-horizon coherence and craft — it now chooses among the frontend skills rather than carrying the evidence burden |
 | `bugfix` | `opencode/nemotron-3-ultra-free` | reasoning-heavy |
 | `devops` | `opencode/nemotron-3.5-lightning-free` | small and fast |
-| `chores` | `opencode/longcat-2.5-preview-free` | long-context mechanics, cheapest seat |
+| `chores` | `opencode/minimax-m3.1-flash-free` | cheapest seat, steady on mechanical edits |
 | `complex` | `agy: claude-opus-4-6-thinking` | frontier reasoning, one deep pass |
+| `qa` | `opencode/nemotron-3.5-super-vl-free` | **the only free vision model** — and the appearance pass is the one thing no other stream can do |
 | `plan-debate` | `agy: claude-opus-4-6-thinking` | the plan's challenger (Radagast) |
-| `review-main` | `opencode/big-pickle` | free, opinionated debate partner |
+| `review-main` | `opencode/longcat-2.5-preview-free` | probe-selected: caught that the obvious fix for a planted defect was itself wrong |
 | `review-debate` | `agy: claude-opus-4-6-thinking` | the challenger |
+
+The honest trade of a free-only fleet: `complex`, `plan-debate` and `review-debate` all
+ride agy Opus, so the two debate judges are the same model. The orchestrator is not a
+lane — it is the session you are in.
 
 ### subscription
 

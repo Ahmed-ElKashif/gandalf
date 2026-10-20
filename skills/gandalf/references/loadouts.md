@@ -16,8 +16,9 @@ this file.
 | Review pair | `npx skills add amElnagdy/review-skills -g -y` | `debate-review`, `babysit-pr` |
 | Guards | `npx skills add amElnagdy/guard-skills -g -y` | `clean-code-guard`, `test-guard`, `docs-guard` |
 | Ponytail | `npx skills add DietrichGebert/ponytail -g -y` | `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help` |
-| UI evidence | `npx skills add amelnagdy/ui-review-loop -g -y` | `ui-review-loop` |
-| Browser backend | `npx skills add vercel-labs/agent-browser -g -y` | `agent-browser` (used by ui-review-loop) |
+| UI evidence | **ships with this repo** — `skills/palantir/` | `palantir` — OUR OWN child skill: WebMCP tools + DOM timeline + HAR, vision as one deliberate pass |
+| Browser backend | `npx skills add vercel-labs/agent-browser -g -y` | `agent-browser` (driven by `palantir`; its WebMCP support is on by default) |
+| Video-first loop (optional) | `npx skills add amelnagdy/ui-review-loop -g -y` | `ui-review-loop` — kept for the case where a human will watch a video; **not** the `ui`/`qa` evidence path |
 
 **Not in Core:** `security-review` (`getsentry/skills`, Apache-2.0, tier `optional`)
 is deliberately outside the loop — a separate skill the user invokes when they want a
@@ -68,6 +69,32 @@ Plus the discipline pair (also `bugfix`): `systematic-debugging` and
 | Frontend-design (identity asks) | `npx skills add anthropics/skills -g -y -s frontend-design` | `frontend-design` |
 | GSAP (only when GSAP is in the deps) | `npx skills add greensock/gsap-skills -g -y` | `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-react`, … |
 
+## `qa` — the palantír
+
+The verifier. It watches the running app through the page's own agent surface and asserts
+what happened — it does not look at the app and guess.
+
+| Pack | Command | Ships |
+|---|---|---|
+| **palantír** | ships with this repo (`skills/palantir/`) | `palantir` — the whole evidence contract: WebMCP tool calls, DOM timeline, network HAR, and the coverage sweep |
+| Browser backend | `npx skills add vercel-labs/agent-browser -g -y` | `agent-browser` — palantír drives it |
+| Diagnosis | `npx skills add obra/superpowers -g -y -s systematic-debugging` | the root-cause ladder, for when a round goes red |
+
+What `qa` does **not** carry: the `ui` craft packs. It is a checker, not a designer — a
+verifier that starts improving the thing it verifies has stopped verifying it.
+
+**It gates `ui`.** A UI change is not done until `qa` has a clean round on it. A red round
+is a **bounce back to `ui`**, not a note attached to a finished job.
+
+Two rules that keep it honest (both are in the palantír skill, and both have teeth):
+
+- **`qa` never authors the WebMCP tool file.** It consumes the one `ui` provides. A
+  checker that can write the thing it checks can write it to pass.
+- **Vision is the last stream, not the first.** Interaction is proven from tool calls,
+  the timeline and the HAR. Appearance is one deliberate pass at the end — a tool call
+  showing `{"text":"42"}` is evidence; a screenshot showing a number is a guess about a
+  picture.
+
 ## `bugfix` — the debugger
 
 | Pack | Command | Ships |
@@ -116,7 +143,9 @@ Lane wiring:
 - `babysit-pr` runs the post-review rounds.
 - The guards (`clean-code-guard` / `test-guard` / `docs-guard`) run in the
   orchestrator session on every diff — see `gates.md`.
-- `ui-review-loop` + `agent-browser` + `ffmpeg` for any UI evidence.
+- UI evidence is the `qa` lane's job (`palantir` + `agent-browser`). A judge reading a
+  UI diff should ask whether a `qa` round backs it — it should not run the browser
+  itself, and `review-main`'s brief is the diff, not the rendered page.
 
 ## Notes
 
