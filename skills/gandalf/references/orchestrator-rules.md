@@ -103,7 +103,7 @@ Merge discipline:
 - **Re-run the gates on the merged tree**, not on each worktree alone. Two lanes can each
   pass and still break together on a shared file.
 - **Never merge a `ui` lane without a clean `qa` round**, and never merge anything without
-  reading its diff.
+  reading its diff. `qa-look` reports on appearance separately and cannot overturn `qa`.
 - **A worktree is deleted only when provably clean.** If it holds work, it stays — a
   failed lane may still have written something worth keeping.
 
@@ -111,8 +111,7 @@ Merge discipline:
 
 Stop and ask when:
 
-- the cast is missing a seat the task needs (no `qa` and the task is UI);
-- a lane wants to touch something outside the repo, or reach the network;
+- the cast is missing a seat the task needs (no `qa` and the task is UI);- a lane wants to touch something outside the repo, or reach the network;
 - a finding cannot be resolved by fixing and cannot be honestly justified;
 - the work needs a credential, an account, or a decision that is not yours;
 - the loop has run three rounds without converging.

@@ -1,5 +1,5 @@
 {
-  "_note": "Free-tier cast. Every opencode lane uses a -free model; agy Opus is the one frontier seat and carries the three dark roads (complex, plan-debate, review-debate). The qa lane MUST hold the vision model: the appearance pass is the one thing no other evidence stream can do.",
+  "_note": "Free-tier cast. Every opencode lane uses a -free model; agy Opus is the one frontier seat and carries the three dark roads (complex, plan-debate, review-debate). The qa-look lane MUST hold the vision model: the appearance pass is the one thing no other evidence stream can do. qa itself needs no vision — it gates behaviour from structured evidence, and judging must not be the same seat as seeing.",
   "version": "delegate-fleet.v1",
   "lanes": {
     "feature": {
@@ -28,6 +28,10 @@
       "model": "claude-opus-4-6-thinking"
     },
     "qa": {
+      "implementer": "opencode",
+      "model": "opencode/nemotron-3-ultra-free"
+    },
+    "qa-look": {
       "implementer": "opencode",
       "model": "opencode/nemotron-3.5-super-vl-free"
     },

@@ -13,7 +13,8 @@ what the council needs to cast well.
 | `devops` | fast; deterministic edits | pipelines, workflows, hooks |
 | `chores` | cheap; steady | bumps, renames, cleanups |
 | `complex` | frontier reasoning — the premium seat | gnarly architecture, subtle concurrency, long marches |
-| `qa` | **vision-capable**; sceptical, patient, drives a browser | verifying a running UI — the done-gate for `ui` |
+| `qa` | text-only is fine; sceptical, patient, drives a browser | verifying a running UI — the behaviour done-gate for `ui` |
+| `qa-look` | **vision-capable** — this is the vision seat | judging appearance against `DESIGN.md` |
 | `plan-debate` | a strong, **different** reasoning model | the plan debate, before anything is dispatched |
 | `review-main` | a second opinion; any budget | debate-review main pass |
 | `review-debate` | a different, stronger challenger | debate-review challenger |
@@ -21,7 +22,7 @@ what the council needs to cast well.
 ## The third judge — `plan-debate`
 
 Seven roles **walk**, three **judge**, one **verifies**: `plan-debate`, `review-main` and
-`review-debate` judge; `qa` verifies the running UI and gates `ui`.
+`review-debate` judge; `qa` verifies the running UI and gates `ui`; `qa-look` is the eye.
 `plan-debate` is the optional third judge — the seat that attacks the *plan* before
 a single hobbit is dispatched (gandalf skill, `references/plan-debate.md`).
 
@@ -58,15 +59,20 @@ a single hobbit is dispatched (gandalf skill, `references/plan-debate.md`).
 | `devops` | `opencode/nemotron-3.5-lightning-free` | small and fast |
 | `chores` | `opencode/minimax-m3.1-flash-free` | cheapest seat |
 | `complex` | `agy` — `claude-opus-4-6-thinking` | frontier, one deep pass |
-| `qa` | `opencode/nemotron-3.5-super-vl-free` | **the only free vision model** — the appearance pass is its irreplaceable job |
+| `qa` | `opencode/nemotron-3-ultra-free` | text-only gate — behaviour, assertions, verdict |
+| `qa-look` | `opencode/nemotron-3.5-super-vl-free` | **the only free vision model** — the appearance pass is its irreplaceable job |
 | `plan-debate` | `agy` — `claude-opus-4-6-thinking` | the plan's challenger (Radagast) |
 | `review-main` | `opencode/longcat-2.5-preview-free` | probe-selected second opinion |
 | `review-debate` | `agy` — `claude-opus-4-6-thinking` | the challenger |
 
-**`qa` needs vision.** It is the one role where image input is not a nice-to-have: the
-appearance pass cannot be done from a diff, a DOM tree, or a HAR. At cast time, check
+**`qa-look` needs vision.** It is the one role where image input is not a nice-to-have:
+the appearance pass cannot be done from a diff, a DOM tree, or a HAR. At cast time, check
 which models actually accept images — do not infer it from a name — and say plainly which
-seat got the only vision model. If the budget allows exactly one, it belongs to `qa`.
+seat got the only vision model. If the budget allows exactly one, it belongs to `qa-look`.
+
+`qa` itself needs no vision: behaviour is asserted from structured evidence. That is what
+makes the split free — the judge stops being its own witness, and the single vision seat
+moves to the seat whose only job is looking.
 
 ### Subscriptions
 

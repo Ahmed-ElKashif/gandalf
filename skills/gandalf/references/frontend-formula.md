@@ -40,10 +40,15 @@ direction per run.
 
 A UI change is not done until the **`qa` lane** returns a clean round on it — `ui` does
 not certify its own work. `qa` runs `palantír`, which verifies through the page's own
-WebMCP tools plus the DOM timeline and the network HAR, and takes **one** deliberate
-vision pass on appearance. Screenshots alone don't count, and neither does a green
-command exit: the round's `meta.json` says which streams landed, and a round with no
-timeline and no tool call is a failed round no matter how clean the console looked.
+WebMCP tools plus the DOM timeline and the network HAR. Screenshots alone don't count, and
+neither does a green command exit: the round's `meta.json` says which streams landed, and
+a round with no timeline and no tool call is a failed round no matter how clean the console
+looked.
+
+**Appearance is a second, separate witness (`qa-look`).** The seat that judges behaviour
+must not also be the only seat that can see — otherwise the green check proves nothing.
+`qa-look` judges the rendered states against `DESIGN.md`, and its verdict is **advisory**:
+it can flag appearance, but it can never overturn `qa`. A beautiful broken page still fails.
 
 `ui` provides the gated WebMCP tool file the round consumes; `qa` never writes it.
 A red round is a **bounce to `ui`** — same lane, same session, findings as the brief.

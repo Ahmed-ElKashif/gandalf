@@ -69,7 +69,7 @@ Plus the discipline pair (also `bugfix`): `systematic-debugging` and
 | Frontend-design (identity asks) | `npx skills add anthropics/skills -g -y -s frontend-design` | `frontend-design` |
 | GSAP (only when GSAP is in the deps) | `npx skills add greensock/gsap-skills -g -y` | `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-react`, … |
 
-## `qa` — the palantír
+## `qa` — the palantír (behaviour gate)
 
 The verifier. It watches the running app through the page's own agent surface and asserts
 what happened — it does not look at the app and guess.
@@ -81,7 +81,9 @@ what happened — it does not look at the app and guess.
 | Diagnosis | `npx skills add obra/superpowers -g -y -s systematic-debugging` | the root-cause ladder, for when a round goes red |
 
 What `qa` does **not** carry: the `ui` craft packs. It is a checker, not a designer — a
-verifier that starts improving the thing it verifies has stopped verifying it.
+verifier that starts improving the thing it verifies has stopped verifying it. It also
+does **not** need vision: behaviour is asserted from structured evidence, never from
+looking at pixels.
 
 **It gates `ui`.** A UI change is not done until `qa` has a clean round on it. A red round
 is a **bounce back to `ui`**, not a note attached to a finished job.
@@ -90,10 +92,31 @@ Two rules that keep it honest (both are in the palantír skill, and both have te
 
 - **`qa` never authors the WebMCP tool file.** It consumes the one `ui` provides. A
   checker that can write the thing it checks can write it to pass.
-- **Vision is the last stream, not the first.** Interaction is proven from tool calls,
-  the timeline and the HAR. Appearance is one deliberate pass at the end — a tool call
-  showing `{"text":"42"}` is evidence; a screenshot showing a number is a guess about a
-  picture.
+- **Assertions come from structured evidence, not pixels.** A tool call showing
+  `{"text":"42"}` is evidence; a screenshot showing a number is a guess about a picture.
+
+## `qa-look` — the eye (appearance only)
+
+The **only** seat that requires vision, and the only seat that judges appearance.
+
+| Pack | Command | Ships |
+|---|---|---|
+| **palantír** (appearance pass) | ships with this repo (`skills/palantir/`) | the deliberate vision pass — `palantir look` and the state inventory from the `ui` lane |
+| Browser backend | `npx skills add vercel-labs/agent-browser -g -y` | `agent-browser` — renders the states to judge |
+| Design language | read `DESIGN.md` from the repo | the standard it judges against — not taste in the abstract |
+
+What `qa-look` does **not** carry: the evidence contract. It does not run rounds, does not
+assert behaviour, and does not gate. It answers one question: **does this match the design
+language the repo already committed to?**
+
+- **Its verdict is advisory and cannot override `qa`.** A beautiful broken page still
+  fails the gate. This is the whole reason the two seats are separate: the witness does
+  not get to outrank the judge, and the judge does not get to be its own witness.
+- **It judges against `DESIGN.md`, not against preference.** "I would have chosen a
+  different blue" is not a finding; "the button uses a colour that is not in the declared
+  palette" is.
+- **States, not vibes.** It reviews the named states the `ui` lane declared (empty,
+  loading, error, long content), so the pass is reproducible.
 
 ## `bugfix` — the debugger
 

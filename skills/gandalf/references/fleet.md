@@ -20,7 +20,8 @@ without it. Protocol: `references/plan-debate.md`.
 | `devops` | fast; deterministic edits | pipelines, workflows, hooks |
 | `chores` | cheap; steady | bumps, renames, cleanups |
 | `complex` | frontier reasoning — the premium seat | the Balrog: gnarly architecture, subtle concurrency, long marches |
-| `qa` | **vision-capable**; patient, sceptical, drives a browser | verifying a running UI — the done-gate for `ui` |
+| `qa` | **text-only is fine**; patient, sceptical, drives a browser | verifying a running UI — the behaviour done-gate for `ui` |
+| `qa-look` | **vision-capable** — this is the vision seat | judging appearance against the design language |
 | `plan-debate` | a strong, *different* reasoning model | the plan's challenger — before anything is dispatched |
 | `review-main` | a second opinion; any budget | debate-review main pass |
 | `review-debate` | a different, stronger challenger | debate-review challenger |
@@ -29,14 +30,24 @@ Cast `plan-debate` onto the strongest model that is **not** the orchestrator's o
 a plan debated against itself proves nothing. Uncast, it falls back to the
 `review-debate` seat.
 
-`qa` is a **gate, not an advisor**: a UI change is not "done" until `qa` has a clean
-round on it. It runs `palantír`, which verifies through the page's own WebMCP tools plus
-the DOM timeline and the network HAR, and takes **one** deliberate vision pass on
-appearance. See `references/loadouts.md` and the palantír skill itself.
+### Why `qa` and `qa-look` are two seats
 
-Cast `qa` onto a model with **vision** — the appearance pass is irreplaceable and no
-other stream can do it. A text-only model can run the mechanical half of palantír
-perfectly well, so if your budget allows only one vision seat, it belongs here.
+They were one, and that was a structural conflict of interest: the seat that **judged**
+the UI was also the only seat that could **see** it. A witness that is also the judge
+cannot be cross-examined — the green check that proves nothing.
+
+So the work is split by standard, not by volume:
+
+- **`qa`** gates **behaviour**. It runs `palantír`: the page's own WebMCP tools, the DOM
+  timeline, and the network HAR, each asserted rather than eyeballed. Its verdict is
+  **pass or bounce**, and a red round bounces to `ui`. It holds no opinion on looks.
+- **`qa-look`** judges **appearance only** — does the rendered result match `DESIGN.md`.
+  It is the **only** seat that needs vision. Its verdict is advisory and can never
+  override `qa`: a beautiful broken page still fails.
+
+Cast `qa-look` onto a model with **vision** — it is the only seat that requires it, and
+the appearance pass is the one thing no structured stream can do. A text-only model runs
+`qa` perfectly well, so if your budget allows one vision seat it goes to `qa-look`.
 
 ## How to cast a role
 
@@ -73,7 +84,8 @@ out, never commits — so the loop never changes when you re-cast a role.
 | `devops` | `opencode/nemotron-3.5-lightning-free` | small and fast |
 | `chores` | `opencode/minimax-m3.1-flash-free` | cheapest seat, steady on mechanical edits |
 | `complex` | `agy: claude-opus-4-6-thinking` | frontier reasoning, one deep pass |
-| `qa` | `opencode/nemotron-3.5-super-vl-free` | **the only free vision model** — and the appearance pass is the one thing no other stream can do |
+| `qa` | `opencode/nemotron-3-ultra-free` | text-only gate — behaviour, evidence, verdict |
+| `qa-look` | `opencode/nemotron-3.5-super-vl-free` | **the only free vision model** — and appearance is the one thing no other stream can judge |
 | `plan-debate` | `agy: claude-opus-4-6-thinking` | the plan's challenger (Radagast) |
 | `review-main` | `opencode/longcat-2.5-preview-free` | probe-selected: caught that the obvious fix for a planted defect was itself wrong |
 | `review-debate` | `agy: claude-opus-4-6-thinking` | the challenger |
@@ -81,6 +93,10 @@ out, never commits — so the loop never changes when you re-cast a role.
 The honest trade of a free-only fleet: `complex`, `plan-debate` and `review-debate` all
 ride agy Opus, so the two debate judges are the same model. The orchestrator is not a
 lane — it is the session you are in.
+
+Note the split costs **no extra vision model**: `qa` moved to a text-only seat it can run
+perfectly well, and `qa-look` keeps the single vision seat. Same eleven seats, and the
+judge is no longer the only witness.
 
 ### subscription
 

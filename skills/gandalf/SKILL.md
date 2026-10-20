@@ -34,7 +34,7 @@ can walk.
 
 ## The roles (fixed wire names)
 
-Six that **walk**, three that **judge**:
+Eight that **walk**, three that **judge**:
 
 | Role | What it needs | Carries |
 |---|---|---|
@@ -44,12 +44,18 @@ Six that **walk**, three that **judge**:
 | `devops` | fast, deterministic edits | CI/CD packs + workflow hardening |
 | `chores` | cheap, steady | pre-commit setup + refactor planning |
 | `complex` | frontier reasoning (premium) | slow & thorough — one deep pass |
+| `qa` | patient, sceptical, drives a browser (no vision) | palantír — the UI **behaviour** gate |
+| `qa-look` | **vision-capable** — the only seat that needs it | the appearance pass, against `DESIGN.md` |
 | `plan-debate` | a strong, *different* reasoner | attacks the plan before dispatch |
 | `review-main` | a second opinion (any budget) | debate-review main pass |
 | `review-debate` | a different, stronger challenger | debate-review challenger |
 
 `plan-debate` is the optional third judge: the council asks before casting it, and
 an uncast seat falls back to `review-debate`.
+
+`qa` and `qa-look` are deliberately two seats. The judge must not be the only witness:
+`qa` gates behaviour from structured evidence, `qa-look` judges appearance, and `qa-look`
+**cannot overturn `qa`** — a beautiful broken page still fails.
 
 Casting guide — example fleets (free-first, subscription, local-first) and how to map
 any CLI + model onto a role: `references/fleet.md`.
@@ -96,7 +102,8 @@ was born from (free opencode lanes + agy Opus for the dark roads).
 3. **Review** — read the implementer's report, inspect the diff, re-run the project
    gates yourself.
 4. **Guards** — *"You shall not pass."* Code diff → `clean-code-guard`; tests →
-   `test-guard`; docs → `docs-guard`; UI changes → a clean `qa` round (`palantír`).
+   `test-guard`; docs → `docs-guard`; UI changes → a clean `qa` round (`palantír`),
+   plus a `qa-look` appearance pass against `DESIGN.md`.
    Verdict is **pass** or **bounce** (findings back to the same session, once) or
    **escalate**. Full pipeline: `references/gates.md`.
 5. **Land** — the orchestrator commits. Implementers never commit.

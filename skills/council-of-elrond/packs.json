@@ -134,7 +134,7 @@
       "url": "https://github.com/SASA-External/LOTR",
       "license": "MIT",
       "tier": "core",
-      "roles": ["qa"],
+      "roles": ["qa", "qa-look"],
       "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
       "provides": ["palantir"],
       "why": "OUR OWN child skill. UI verification through the page's own WebMCP tools plus the DOM timeline and the network HAR — structured evidence instead of a screenshot loop, with vision as ONE deliberate pass on appearance. Standalone: it does not depend on ui-review-loop at runtime, so it works where that skill is absent or its video half is broken. Derived from amElnagdy/ui-review-loop's recorder concept, credited above; re-shaped for a WebMCP-first, video-optional evidence model."
@@ -160,7 +160,7 @@
       "url": "https://github.com/vercel-labs/agent-browser",
       "license": "unverified",
       "tier": "core",
-      "roles": ["ui", "qa"],
+      "roles": ["ui", "qa", "qa-look"],
       "install": "npx skills add vercel-labs/agent-browser -g -y",
       "provides": ["agent-browser"],
       "why": "The browser backend palantír and ui-review-loop drive. Ships experimental WebMCP support ON by default for a locally launched Chrome (webmcp list/invoke/result/cancel), which is what palantir's tool-call evidence is built on. ffmpeg is a separate system dependency for recording."

@@ -23,7 +23,7 @@ fails sends the work **back** — it is not a wall, it is a door with a hinge.
    | Production code | `clean-code-guard` |
    | Tests | `test-guard` |
    | Docs / README / changelog | `docs-guard` |
-   | UI changes | the `qa` lane — a clean `palantir` round (the done-gate; see below) |
+   | UI changes | the `qa` lane — a clean `palantir` round (the done-gate; see below), plus a `qa-look` appearance pass |
    | CI / workflows | `github-actions-hardening` |
 
 3. **Land** — the orchestrator commits. Implementers never commit.
@@ -126,21 +126,35 @@ Security review is not a gate in this loop. It is a separate skill
 security pass. Adding it to the every-diff pipeline would make it a rubber stamp;
 leaving it out keeps it meaningful. Point at it; do not run it by default.
 
-## palantír — the UI gate (lane `qa`)
+## palantír — the UI gate (lanes `qa` and `qa-look`)
+
+The gate is **two seats on purpose**: the seat that judges must not be the only seat that
+can see. `qa` gates behaviour; `qa-look` witnesses appearance and cannot overturn `qa`.
+
+**`qa` — the behaviour gate (no vision needed):**
 
 - A UI change is not done until `qa` has a **clean round**: the page's WebMCP tool calls,
   the DOM timeline, and the network HAR, each asserted rather than eyeballed.
 - Run by the `qa` lane via the `palantir` skill (ships with this repo). Backend: the
   agent-browser CLI; **WebMCP support is on by default** for a locally launched Chrome.
-- **Vision is one deliberate pass at the end**, on the states a human will judge — never
-  the mechanism. Interaction is proven from structured evidence.
-- Video is **optional** and is not the primary stream. If a round cites video, the file
-  must be confirmed present — recording fails silently when ffmpeg lacks the codec.
 - A red round is a **bounce to `ui`**, not a note on a finished job.
 - `qa` never authors the WebMCP tool file it consumes; `ui` provides it, gated to
   test/dev. See the palantír skill, `references/webmcp.md`.
-- `ui-review-loop` (`amelnagdy`, tier `core`) is kept for the case where a human will
-  watch a video and comment. It is not this gate.
+
+**`qa-look` — the eye (the vision seat):**
+
+- Judges **appearance only**, against the repo's `DESIGN.md` — never behaviour, which is
+  `qa`'s job and is proven from structured evidence.
+- **Advisory verdict. It can never override `qa`.** A beautiful broken page still fails.
+- Reviews the **named states** the `ui` lane declared (empty, loading, error, long
+  content), so the pass is reproducible rather than impressionistic.
+- A finding must cite the design language ("this colour is not in the declared palette"),
+  not preference.
+
+Video is **optional** and is not the primary stream. If a round cites video, the file must
+be confirmed present — recording fails silently when the recorder cannot finalize.
+`ui-review-loop` (`amelnagdy`, tier `core`) is kept for the case where a human will watch
+a video and comment. It is not this gate.
 
 ## debate-review
 

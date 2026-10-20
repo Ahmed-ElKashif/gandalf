@@ -44,7 +44,8 @@ Read this from `packs.json` (`roles` on each entry). Condensed:
 | `orchestrator` | guards · `writing-plans` · `grilling` · `to-tickets` · `code-review` |
 | `plan-debate` | `domain-modeling` · `systematic-debugging` · `receiving-code-review` |
 | `review-main` / `review-debate` | `debate-review` · `domain-modeling` · `systematic-debugging` · `receiving-code-review` |
-| `qa` | **`palantir`** (ships with this repo) · `agent-browser` · `systematic-debugging` — the UI evidence gate |
+| `qa` | **`palantir`** (ships with this repo) · `agent-browser` · `systematic-debugging` — the UI behaviour gate |
+| `qa-look` | **`palantir`** (appearance pass) · `agent-browser` — the vision seat; judges against `DESIGN.md` |
 | `feature` | stack packs for the repos in use + Ponytail |
 | `ui` | Emil's craft + motion, taste-skill, ibelick UI kit, `frontend-design`; GSAP only when GSAP is in the deps |
 | `bugfix` | `systematic-debugging` · `verification-before-completion` · `diagnosing-bugs` · `tdd` |

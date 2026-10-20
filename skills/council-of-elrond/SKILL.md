@@ -3,7 +3,7 @@ name: council-of-elrond
 description: >-
   Convene the council that forms your delegation fleet — gandalf-style casting:
   arm the machine from packs.json, ask one grounding question, cast the ten roles
-  (feature, ui, bugfix, devops, chores, complex, qa, plan-debate, review-main,
+  (feature, ui, bugfix, devops, chores, complex, qa, qa-look, plan-debate, review-main,
   review-debate) onto the CLIs and models you actually have, write the
   delegate-fleet config, generate lane preambles, and verify the cast. Use when the
   user asks to set up, cast, muster, or configure a delegation fleet, install the
@@ -54,12 +54,14 @@ One concept: **lanes**. A lane names an implementer and optional dials.
 7. Every lane carries a **Basis**: `preset` / `your answer` / `my opinion` /
    `schema requirement`. Beyond the preset, your own dial picks are offered as an
    addendum after the table — never pre-filled silently.
-8. The ten roles are the standard cast: seven that **walk** (`feature`, `ui`,
-   `bugfix`, `devops`, `chores`, `complex`, `qa`) and three that **judge**
+8. The eleven roles are the standard cast: eight that **walk** (`feature`, `ui`,
+   `bugfix`, `devops`, `chores`, `complex`, `qa`, `qa-look`) and three that **judge**
    (`plan-debate`, `review-main`, `review-debate`). Fewer is fine when the user
    asks for less; never more without asking. `plan-debate` is the optional third
    judge — ask about it, and say plainly what falls back if they decline.
-   `qa` is the UI gate: it needs **vision**, and it verifies rather than builds.
+   `qa` is the UI **behaviour** gate and needs no vision; `qa-look` is the **eye**
+   (the only vision seat) and its verdict cannot override `qa`. Splitting them stops
+   the judge from being its own witness.
 9. Never edit `AGENTS.md`, `CLAUDE.md`, or other user agent-instruction files.
 10. Never dispatch coding work from this skill. Verification runs are read-only
     health checks only.
