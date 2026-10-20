@@ -143,10 +143,17 @@ function drainTimeline(round) {
   }
   if (frames === null) return { landed: false, reason: `recorder not present on the page (unparseable drain: ${raw.slice(0, 80)})` };
 
-  if (frames.length) {
-    fs.appendFileSync(path.join(pkg, "frames.jsonl"), frames.map((f) => JSON.stringify(f)).join("\n") + "\n");
+  // `dumpCompact()` returns the WHOLE buffer every time, so a naive append duplicates
+  // every earlier frame on each drain — and `run` drains twice per action. Track how many
+  // frames of this buffer we have already written and append only the new tail.
+  const seen = round.drainedFrames || 0;
+  const fresh = frames.length >= seen ? frames.slice(seen) : frames;
+  round.drainedFrames = frames.length;
+
+  if (fresh.length) {
+    fs.appendFileSync(path.join(pkg, "frames.jsonl"), fresh.map((f) => JSON.stringify(f)).join("\n") + "\n");
   }
-  return { landed: true, frames: frames.length };
+  return { landed: true, frames: fresh.length };
 }
 
 /**
@@ -163,13 +170,42 @@ function recordToolCall(round, toolArgs, out) {
     command: `webmcp ${toolArgs.join(" ")}`,
     raw: out.slice(0, 20000),
   };
-  const m = out.match(/^\s*([0-9A-F]{16,}):\s*completed/m);
+
+  // Parse the authoritative status, never the exit code and never the JSON envelope's
+  // `success`. Verified traps (Chrome 156 / agent-browser 0.39.1):
+  //   - a failed tool exits 0, and so does a call to a nonexistent tool;
+  //   - `"success": true` means the CLI ran — a tool whose execute threw still reports it.
+  // The honest signals are `data.status` under --json, or the `<id>: <status>` suffix in
+  // the plain form. We must not sniff for the word "error": a tool may legitimately
+  // RETURN an error message as its successful result.
+  let status = null;
+  const json = out.match(/"status"\s*:\s*"([a-z_]+)"/i);
+  if (json) status = json[1].toLowerCase();
+  else {
+    const plain = out.match(/^\s*[0-9A-F]{16,}:\s*([a-z_]+)/im);
+    if (plain) status = plain[1].toLowerCase();
+  }
+  entry.status = status || "unknown";
+
+  const m = out.match(/^\s*([0-9A-F]{16,}):/m);
   if (m) entry.invocationId = m[1];
-  if (/\bfailed\b/i.test(out) || /\berror\b/i.test(out)) entry.outcome = "error";
-  else if (m || /"success"\s*:\s*true/.test(out)) entry.outcome = "ok";
+  const idm = out.match(/"invocationId"\s*:\s*"([0-9A-F]+)"/i);
+  if (idm) entry.invocationId = idm[1];
+
+  // Machine-readable CLI failures (no tool invocation happened at all).
+  const code = out.match(/"(?:code|error)"\s*:\s*"(webmcp_[a-z_]+)/i) ||
+               out.match(/(webmcp_[a-z_]+):/i);
+
+  if (code) entry.outcome = "error";
+  else if (status === "completed") entry.outcome = "ok";
+  else if (status === "failed" || status === "timed_out" || status === "cancelled") entry.outcome = "error";
+  else if (status === "pending") entry.outcome = "pending";
+  else if (m || idm) entry.outcome = "ok";
   else entry.outcome = "unknown";
+
   arr.push(entry);
   fs.writeFileSync(file, JSON.stringify(arr, null, 2));
+  return entry;
 }
 
 // ---------------------------------------------------------------- commands
@@ -247,23 +283,41 @@ function cmdRun({ args }) {
   process.exit(r.status || 0);
 }
 
-function cmdAssert({ tool, params, expectResultContains, expectHar, expectDomMutation, expectUrlChange }) {
+function cmdAssert({ tool, params, expectResultContains, expectHar, expectDomMutation, expectUrlChange, expectValue, expectFocus }) {
   const round = readActive();
   if (!round) { console.error("palantir: no active round."); process.exit(1); }
   const pkg = pkgDir(round.id);
   const results = [];
+
+  // Pull the page's timeline up to date before reading it. Without this, a state change
+  // driven outside a wrapped `run` (or the tail of the last action) is invisible to the
+  // assertion — the classic "it works but the check says no".
+  if (expectValue !== undefined || expectFocus || expectDomMutation) {
+    const d = drainTimeline(round);
+    if (d.landed) round.streams.dom = true;
+    else if (!round.notes.includes(d.reason)) round.notes.push(d.reason);
+    writeActive(round);
+  }
 
   if (tool) {
     const args = ["webmcp", "invoke", tool];
     if (params) args.push("--params", params);
     const r = ab(args, { allowFail: true, quiet: true });
     process.stdout.write(r.out);
-    recordToolCall(round, ["invoke", tool], r.out);
+    const entry = recordToolCall(round, ["invoke", tool].concat(params ? ["--params", params] : []), r.out);
     round.streams.tools = true;
 
-    if (expectResultContains) {
+    // A tool assertion only means something if the tool actually completed. A failed
+    // invocation exits 0 and prints `: failed`; keying on a bare substring would let a
+    // broken tool satisfy `--expect-result-contains` from unrelated output.
+    const completed = entry.status === "completed";
+    results.push({ check: "tool completed", expect: "completed", ok: completed, got: entry.status });
+
+    if (expectResultContains && completed) {
       const ok = r.out.includes(expectResultContains);
       results.push({ check: "result contains", expect: expectResultContains, ok });
+    } else if (expectResultContains) {
+      results.push({ check: "result contains", expect: expectResultContains, ok: false, got: "tool did not complete" });
     }
   }
 
@@ -288,6 +342,66 @@ function cmdAssert({ tool, params, expectResultContains, expectHar, expectDomMut
     const r = spawnSync(AB, ["get", "url"], { encoding: "utf8", shell: false, timeout: 60000 });
     const ok = (r.stdout || "").includes(expectUrlChange);
     results.push({ check: "url", expect: expectUrlChange, ok, got: (r.stdout || "").trim() });
+  }
+
+  // Timeline-sourced atoms. These read the frames drained for this round, so they prove
+  // the page actually reacted — not merely that a command was issued. While a round is
+  // live the frames are in `frames.jsonl`; after `stop` they are consolidated into
+  // `dom.json`. Read whichever exists so an assertion does not silently see "no timeline".
+  const timelineFrames = (() => {
+    const tryRead = (file) => {
+      try {
+        const raw = fs.readFileSync(path.join(pkg, file), "utf8");
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch { return null; }
+    };
+    const fromDom = tryRead("dom.json");
+    if (fromDom) return fromDom;
+    try {
+      return fs.readFileSync(path.join(pkg, "frames.jsonl"), "utf8")
+        .split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    } catch { return null; }
+  })();
+
+  if (expectValue !== undefined) {
+    // `--expect-value "field=text"` — the timeline's `values` must show it. State frames
+    // (input/change) carry values as well as mutation frames, so typing a value is
+    // provable even when it causes no DOM mutation.
+    const eq = String(expectValue).indexOf("=");
+    const field = eq > 0 ? String(expectValue).slice(0, eq) : null;
+    const want = eq > 0 ? String(expectValue).slice(eq + 1) : String(expectValue);
+    let ok = false, got = null;
+    for (const f of timelineFrames || []) {
+      if (!f.values) continue;
+      if (field) {
+        const v = String(f.values[field] ?? "");
+        if (v.includes(want)) { ok = true; got = `${field}=${v}`; break; }
+      } else {
+        const hit = Object.entries(f.values).find(([, v]) => String(v).includes(want));
+        if (hit) { ok = true; got = `${hit[0]}=${hit[1]}`; break; }
+      }
+    }
+    results.push({ check: "value registered", expect: String(expectValue), ok, got: ok ? got : (timelineFrames ? "not found in timeline" : "no timeline") });
+  }
+
+  if (expectFocus) {
+    // A focus frame is pushed directly, and also appears as a mutation's `trigger` when
+    // the focus caused one. Accept either, and match on the described target (or targets,
+    // when a burst of events coalesced into one frame).
+    let ok = false, got = null;
+    for (const f of timelineFrames || []) {
+      const candidates = [f.target, ...(Array.isArray(f.targets) ? f.targets : [])].filter(Boolean);
+      const hit = candidates.find((c) => String(c).includes(String(expectFocus)));
+      if (f.kind === "focus" && hit) {
+        ok = true; got = hit; break;
+      }
+      const trig = f.trigger;
+      if (trig && /focus/i.test(String(trig.type || "")) && String(trig.target || "").includes(String(expectFocus))) {
+        ok = true; got = trig.target; break;
+      }
+    }
+    results.push({ check: "focus moved", expect: String(expectFocus), ok, got: ok ? got : (timelineFrames ? "no matching focus event" : "no timeline") });
   }
 
   const verdictFile = path.join(pkg, "verdict.json");
@@ -444,6 +558,8 @@ try {
       expectHar: flags["expect-har"],
       expectDomMutation: flags["expect-dom-mutation"],
       expectUrlChange: flags["expect-url-change"],
+      expectValue: flags["expect-value"],
+      expectFocus: flags["expect-focus"],
     }); break;
     case "look": cmdLook({ state: flags.state, shot: flags.shot }); break;
     case "stop": cmdStop({ summary: flags.summary }); break;
@@ -455,7 +571,8 @@ try {
   start   --url <url> [--video] [--fps 5] [--redact <selectors>]
   run     -- <agent-browser args...>
   assert  [--tool <name>] [--params <json>] [--expect-result-contains <s>]
-          [--expect-har "POST /api/x 201"] [--expect-dom-mutation] [--expect-url-change <s>]
+          [--expect-har "POST /api/x 201"] [--expect-dom-mutation]
+          [--expect-url-change <s>] [--expect-value "field=text"] [--expect-focus <sel>]
   look    --state <name>
   stop    --summary "<one line, <=160 chars>"
   abort

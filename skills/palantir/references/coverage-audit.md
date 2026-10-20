@@ -58,19 +58,33 @@ representative or failing flow** instead — the normal round workflow.
 
 ## The `expects` vocabulary
 
-| atom | meaning | how it is asserted |
-|---|---|---|
-| `nav` | URL changes | wait on the declared target; target goes in `note` |
-| `fetch` | AJAX fires | frames contain `fetch:start` / `fetch:end` |
-| `mut` | DOM reacts | a mutation frame follows the interaction |
-| `focus` | focus moves | `document.activeElement` changed as declared |
-| `disable` | submit locks + feedback label | button disabled and label swapped in flight |
-| `value` | typed value registers | frame `values` show it |
-| `toggle` | open/closed flips | element/state present ↔ absent |
-| `tool` | WebMCP tool returns declared shape | `tools.json` shows the call and result |
+The inventory records what each element is *expected* to do. Two columns: whether the
+runner can assert it today, and how you read it out of the timeline when it cannot.
+
+| atom | meaning | runner flag | how to read it |
+|---|---|---|---|
+| `nav` | URL changes | `--expect-url-change <s>` | `get url`, or the `boot` frame's `url` |
+| `fetch` | AJAX fires | `--expect-har "POST /x 201"` | `fetch:start` / `fetch:end` / `fetch:error` frames |
+| `mut` | DOM reacts | `--expect-dom-mutation` | any mutation frame after the interaction |
+| `focus` | focus moves | `--expect-focus <sel>` | `focus` frame's `target` / `targets` |
+| `value` | typed value registers | `--expect-value "field=text"` | `state` / `mutation` frame `values` |
+| `tool` | WebMCP tool returns declared shape | `--tool` + `--expect-result-contains` | `tools.json` (`status` must be `completed`) |
+| `disable` | submit locks + feedback label | — | a mutation frame with an attribute change on the button |
+| `toggle` | open/closed flips | — | element present ↔ absent across two mutation frames |
+
+`disable` and `toggle` have **no flag yet**. They are real claims you can make by reading
+`dom.json`, but writing them as assertions would be a lie about what the tool checks. Read
+the frames and say what you saw.
 
 `tool` is this skill's addition. Prefer it where a tool exists — it asserts against
-structured output instead of inferring from pixels, and it fails loudly.
+structured output instead of inferring from pixels, and it fails loudly. A `tool`
+expectation requires the invocation to have **completed**; `failed` / `timed_out` /
+`pending` are violations, not passes.
+
+**Declarative `<form>` tools are unverifiable here.** They appear in `webmcp list` with a
+synthesized schema, but invoking one times out without submitting the form (measured on
+Chrome 156). Count a declarative tool as **not exercised** — never as green. See
+`references/webmcp.md`.
 
 ## The recurring workflow
 

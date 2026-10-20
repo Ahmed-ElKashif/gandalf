@@ -25,6 +25,11 @@ Do not re-litigate this. On this fleet's machine it was tested end to end:
 Below the trial (or with the flag off) the surface is simply absent and you fall back to
 streams 2–3. That is a normal state, not an error.
 
+A later audit measured the **whole spec surface** against this build — including which
+guarantees hold, which exception names diverge, and the four traps above. The table is in
+`FINDINGS-WEBMCP-SPEC.md` (window `~/.opencode/plan/`). Read it before relying on any
+error name or annotation key.
+
 ## The commands
 
 ```bash
@@ -38,6 +43,73 @@ agent-browser webmcp result <id>          # collect a detached invocation
 agent-browser webmcp cancel <id>
 agent-browser webmcp invoke <tool> --timeout <ms>
 ```
+
+## Four traps — read these before trusting any tool result
+
+Every one of these is measured on `agent-browser` 0.39.1 / Chrome 156, and every one
+turns a broken tool into a green line in a report.
+
+### 1. `"success": true` does not mean the tool succeeded
+
+The `--json` envelope reports whether **the CLI ran**, not whether the tool worked. A tool
+whose `execute` threw still reports success:
+
+```json
+{"success":true,"data":{"rawStatus":"Error","status":"failed","toolName":"boom"},"error":null}
+```
+
+**The only honest signal is `data.status`:** `completed` | `failed` | `pending` |
+`timed_out`. Never key a verdict on `success`.
+
+### 2. A failed invocation exits 0 — and so does a nonexistent tool
+
+```bash
+$ agent-browser webmcp invoke boom --params '{}'
+1E33AFC5FA8CF8EBADAD520EA4F1343F: failed     # exit code 0
+$ agent-browser webmcp invoke does-not-exist --params '{}'
+✗ webmcp_tool_not_found: No WebMCP tool named 'does-not-exist'    # exit code 0
+```
+
+Exit code is useless **in both directions** (some *successful* commands exit 1). Parse the
+output: the `: completed` / `: failed` suffix in plain form, or `data.status` under
+`--json`. With `--detach` you get `status: "pending"` and an `invocationId` — collect it
+with `webmcp result <id>`.
+
+### 3. Annotation names differ between the two surfaces
+
+The same tool, read two ways (verified on one page, one registration):
+
+| Surface | Keys |
+|---|---|
+| in-page `getTools()` | `readOnlyHint`, `untrustedContentHint`, `consequentialHint`, `debugging` |
+| `webmcp list --json` | `readOnly`, `untrustedContent`, `consequential`, `debugging` |
+
+The CLI **drops the `Hint` suffix**. An assertion that greps for `readOnlyHint` in CLI
+output matches nothing and silently reads as "no annotation".
+
+### 4. Names are not unique across frames
+
+`list --json` entries carry `frameId`; declarative tools also carry `backendNodeId`. Two
+frames can register the same tool *name*. On a page with iframes, scope a `tool` assertion
+by `frameId`, or you may assert against a different frame's tool than the one you drove.
+
+## What the implementation guarantees, and what it does not
+
+Verified by calling the in-page API directly on Chrome 156 (full table in
+`FINDINGS-WEBMCP-SPEC.md`). This is what you may rely on:
+
+**Guaranteed** — `duplicate name`, `name` with a space/unicode/over 128 chars, and an empty
+`description` all reject with `InvalidStateError`; a circular `inputSchema` rejects with
+`TypeError`; `getTools()` returns a **deep copy** of the schema sorted by name, each entry
+carrying `name, title, description, inputSchema, window, origin, annotations`; `title`
+defaults to `""`; annotations round-trip; aborting the registration `AbortSignal`
+unregisters the tool and fires `toolchange`; `executeTool` resolves to a **string**.
+
+**Not guaranteed** — the **exception names are not the spec's**. Measured: tool-not-found,
+a rejected `execute`, and an unserializable result all surface as `UnknownError` (not
+`NotFoundError` / `OperationError`), a non-object input as `TypeError` (not `DataError`),
+and a tool returning `undefined` produces the literal string `"undefined"`. Classify a
+failure from the **CLI's `status`**, never by guessing an exception name.
 
 ## The validation trap — the single most important rule
 
@@ -57,6 +129,47 @@ Consequences for verification:
   it — do not treat execution-as-success as success.
 - When a tool is security-relevant, **try to break it**: wrong types, empty strings, huge
   values, ids belonging to another user. That is where a palantír earns its keep.
+
+## Annotations are evidence, not decoration
+
+A tool may carry four hints (spec names shown; the CLI drops the `Hint` suffix — see trap 3):
+
+| annotation | means | what it lets you assert |
+|---|---|---|
+| `readOnlyHint` | touches no state | a read action changed nothing — or, if it *did* mutate, the hint is a lie worth reporting |
+| `consequentialHint` | real-world / non-reversible | high-stakes actions deserve confirmation; its absence on a destructive tool is a finding |
+| `untrustedContentHint` | output is page-supplied data | the result must be treated as data, never instructions |
+| `debugging` | developer tooling, not user-facing | a `debugging` tool in a shipped bundle is a finding |
+
+These are **declarations by the page**, so they are also things the page can get wrong.
+Read them with `webmcp list <tool> --json` and assert against them where a claim is
+checkable — "this action is read-only" is a real, falsifiable claim.
+
+## Do not build on the declarative `<form>` API
+
+The spec and README are explicit that the declarative API is **"not part of the
+specification at this time"**. Measured on Chrome 156 it is worse than unsupported: a
+`<form toolname=… tooldescription=…>` **does register a discoverable tool** with a
+synthesized `inputSchema`, but invoking it **times out and never submits the form**.
+
+The trap: a declarative tool appears in `webmcp list` and inflates a coverage count while
+being impossible to invoke. **Treat a declarative tool as unverifiable** — report it as
+not-exercised rather than counting it green. Use imperative `registerTool()` for anything
+QA needs to drive.
+
+## Character budgets
+
+Chrome's guidance, useful as a reviewable ceiling on a QA tool file:
+
+| field | budget |
+|---|---|
+| tool description | 500 chars |
+| parameter description | 150 chars |
+| tool / parameter name | 30 chars |
+| one tool output | 1.5K chars |
+
+Over-budget descriptions crowd the agent's context and are a defect to report, not a style
+preference.
 
 ## What tools do and do not prove
 

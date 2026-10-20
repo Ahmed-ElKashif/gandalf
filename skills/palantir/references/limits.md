@@ -33,6 +33,13 @@ input executes. See `references/webmcp.md`.
 under test and are untrusted. A tool can be written to return whatever makes the round
 pass. This is why the `qa` lane never authors the tool file.
 
+**That a tool run succeeded, just because the command did.** A failed invocation, and even
+a call to a tool that does not exist, both **exit 0**. The `--json` envelope's
+`"success": true` means only that the CLI ran — a tool whose `execute` threw still reports
+it. The honest signal is `status` (`completed` / `failed` / `pending` / `timed_out`), and
+anything keying on exit code or `success` is a green check that proves nothing. See the
+four traps in `references/webmcp.md`.
+
 **That it looks right.** Nothing here inspects appearance. That is the vision pass, and it
 is the only thing that does.
 
@@ -47,6 +54,9 @@ Before reporting a round as passing, confirm each — a round can fail without e
 - [ ] `meta.json` opened, and each expected stream shows as landed.
 - [ ] `tools.json` non-empty **on a page that registers tools**. Empty here is a failure,
       not a pass.
+- [ ] Every recorded tool call shows `outcome: ok` and a `status` of `completed` — a
+      `failed` invocation exits 0 and can look like a pass at a glance.
+- [ ] No tool asserted on without a `status` check. `"success": true` is not that check.
 - [ ] `dom.json` has frames covering the interaction, not just startup.
 - [ ] At least one `assert` ran and could have failed.
 - [ ] The HAR contains the requests the flow implies — a flow that made no request when it

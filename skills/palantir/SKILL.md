@@ -131,23 +131,40 @@ node "$PALANTIR_DIR/scripts/round.mjs" assert \
   --tool add-item --params '{"text":"milk"}' \
   --expect-result-contains "milk" \
   --expect-har "POST /api/items 201" \
-  --expect-dom-mutation
+  --expect-dom-mutation \
+  --expect-value "q=hello" \
+  --expect-focus "#pw"
 ```
 
-The `expects` vocabulary (same atoms as `references/coverage-audit.md`):
+The assertion vocabulary. The first column is implemented **today** and fails the round
+when it does not hold; the second is a claim you can make in a report by reading the
+timeline yourself — there is no flag for it yet, so do not write it as an assertion.
 
-| atom | asserts |
-|---|---|
-| `nav` | the URL changed to the declared target |
-| `fetch` | the declared request fired with the declared status |
-| `mut` | a DOM mutation followed the interaction |
-| `focus` | `document.activeElement` moved as declared |
-| `disable` | the submit locked and swapped feedback while in flight |
-| `value` | the typed value registered in the timeline |
-| `toggle` | an open/closed state flipped |
-| `tool` | a WebMCP tool returned the declared shape |
+| flag | asserts | reads |
+|---|---|---|
+| `--tool` + `--expect-result-contains` | a WebMCP tool **completed** and its result contains the string | `tools.json`, CLI output |
+| `--expect-har "POST /api/x 201"` | the declared request fired with the declared status | live request list |
+| `--expect-dom-mutation` | at least one timeline frame landed | timeline |
+| `--expect-url-change <s>` | the URL now contains the string | `get url` |
+| `--expect-value "field=text"` | the typed/filled value appears in the timeline's form values | timeline `values` |
+| `--expect-focus <sel>` | focus landed on the described element | timeline `focus` frame |
+
+Not yet a flag — read the timeline instead: `disable` (a submit locked while in flight)
+and `toggle` (an open/closed state flipped) appear as ordinary mutation frames with
+attribute changes. Asserting them means reading `dom.json`, not passing a flag. Say so
+plainly rather than inventing an atom that does not exist.
 
 A round with zero assertions proves only that commands exited 0.
+
+**A `--tool` assertion first checks the tool *completed*.** A failed invocation exits 0, so
+"the command ran" is not evidence; the runner records `status` and fails the assertion
+unless it is `completed`. See the four traps in `references/webmcp.md`.
+
+**`focus` and `value` come from state frames, not mutations.** Typing into a field or
+moving focus changes what the page *holds* without necessarily changing the DOM, so the
+recorder pushes a `state`/`focus` frame on `input`/`change`/`focus` (coalesced, so a burst
+of keystrokes is one frame). This is what makes "the field ends up containing X" provable
+at all.
 
 ## Appearance — the one vision pass
 

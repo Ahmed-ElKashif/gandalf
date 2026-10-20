@@ -94,9 +94,48 @@
     lastEvent = { t: now(), type: e.type, target: describe(e.target) };
   }
 
+  /**
+   * State frames. Typing into a field or moving focus changes what the page HOLDS without
+   * necessarily mutating the DOM, so a mutation-only timeline would never show it — and
+   * an assertion like "the field ends up containing X" would be unprovable. We push a
+   * lightweight frame on input/change/focus so those state changes land in the timeline
+   * in order, next to the mutations they precede.
+   *
+   * Coalesced: many keystrokes in a burst collapse to one frame, so the timeline stays
+   * readable and the package stays small.
+   */
+  let stateTimer = null;
+  let stateEvents = [];   // { kind, target } in arrival order
+  function onStateEvent(e) {
+    stateEvents.push({ kind: e.type === "focus" ? "focus" : "state", target: describe(e.target) });
+    if (stateTimer) return;
+    stateTimer = setTimeout(() => {
+      stateTimer = null;
+      const events = stateEvents;
+      stateEvents = [];
+      // The frame kind is the kind of the LAST event in the burst; the target is that
+      // same event's target. Reporting a focus kind with the earlier input's target (or
+      // vice versa) makes the timeline lie about what happened.
+      const last = events[events.length - 1] || { kind: "state", target: null };
+      const targets = [...new Set(events.map((x) => x.target).filter(Boolean))];
+      push({
+        t: Math.round(now()),
+        kind: last.kind,
+        trigger: lastEvent ? { type: lastEvent.type, target: lastEvent.target, dt: Math.round(now() - lastEvent.t) } : null,
+        target: last.target,
+        targets: targets.length > 1 ? targets : undefined,
+        text: visibleText(),
+        values: formValues(),
+      });
+    }, 40);
+  }
+
   function installEvents() {
     for (const type of ["input", "change", "click", "keydown", "submit", "focus"]) {
       document.addEventListener(type, onUserEvent, true);
+    }
+    for (const type of ["input", "change", "focus"]) {
+      document.addEventListener(type, onStateEvent, true);
     }
   }
 

@@ -9,12 +9,19 @@ The recorder observes the page; nothing needs per-feature instrumentation.
 
 - **Every mutation on `<body>`**, via `MutationObserver` — React, Stimulus, jQuery, raw JS,
   all caught the same way, coalesced into readable frames.
+- **State frames** (`state` / `focus`) — pushed on `input` / `change` / `focus`. Typing or
+  moving focus changes what the page *holds* without necessarily mutating the DOM, so a
+  mutation-only timeline would never show a filled field. Coalesced over ~40 ms, so a
+  burst of keystrokes is one frame; the frame's `target` is the last event's target and
+  `targets` lists all of them when several coalesced.
 - **The nearest user event in time** before each change (capture-phase listeners on
   input/change/click/keydown/submit/focus). This is **temporal context, never proof of
   causation** — but a mutation with no nearby event and no fetch is the classic *"it
   changes by itself"* smell. Investigate that frame first.
 - **Fetch boundaries** — `fetch:start` / `fetch:end` / `fetch:error` with URL and status,
   so an AJAX flow reads like a transcript.
+- **WebMCP `tool:change` frames** — the tools a page registers, in the same timeline as
+  everything else.
 - **Form values and visible text** per frame.
 
 ## Reading it

@@ -88,13 +88,25 @@ One entry per `webmcp` command the runner wrapped:
   "command": "invoke create-item --params '{\"text\":\"milk\"}'",
   "raw": "…the CLI's own output, capped at 20 KB…",
   "invocationId": "F4E5B40EADB1FFFEF292403F75CE1801",
+  "status": "completed",
   "outcome": "ok"
 }]
 ```
 
 `raw` is what the CLI printed, verbatim. It is the ground truth when a structured field
-looks wrong — read it before disputing a result. `outcome` is `ok` / `error` / `unknown`;
-`unknown` means the output matched neither shape, which is itself worth a look.
+looks wrong — read it before disputing a result.
+
+**`status` is the field that matters.** It is parsed from the CLI's own reporting
+(`data.status`, or the `<id>: <status>` suffix) and is one of `completed`, `failed`,
+`timed_out`, `cancelled`, `pending`, `unknown`. **Do not trust the exit code** — a failed
+invocation exits 0, and so does a call to a tool that does not exist. Do not trust the
+`--json` envelope's `"success": true` either: a tool whose `execute` threw still reports
+it. `outcome` is a convenience roll-up (`ok` / `error` / `pending` / `unknown`), never a
+substitute for reading `status`.
+
+A tool that *succeeds by returning an error message* — a perfectly normal design — records
+`status: "completed"`, `outcome: "ok"`. Classification must never sniff the words "error"
+or "failed" in the output; the runner does not, and neither should a report.
 
 ## `verdict.json`
 
