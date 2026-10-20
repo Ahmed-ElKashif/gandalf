@@ -42,9 +42,10 @@
  *   --lanes <a,b,c>      Shorthand with a single shared --brief.
  *   --brief <file>       Brief for the --lanes shorthand.
  *   --cd <dir>           Repo root when there is no plan file.
- *   --max <n>            Max concurrent lanes (default: 4). Free tiers rate-limit
- *                        per account, not per process — 4 has headroom; raise with
- *                        evidence, not hope.
+ *   --max <n>            Max concurrent lanes (default: 4). A conservative judgment
+ *                        call, not a measured optimum: five concurrent free-model
+ *                        one-liners were measured clean, but real lanes are heavier
+ *                        and free tiers rate-limit per account. Raise with evidence.
  *   --no-worktree        Share one tree for every lane. Only safe for lanes you have
  *                        verified touch disjoint files. Prints a warning.
  *   --keep-worktrees     Do not remove a lane's worktree after it finishes.
@@ -61,9 +62,9 @@
  *   opencode --session <id> --continue
  */
 
-import { readFileSync, mkdirSync, existsSync, openSync, closeSync, rmSync } from "node:fs";
+import { readFileSync, mkdirSync, existsSync, openSync, closeSync, rmSync, readdirSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
-import { join, resolve, basename, dirname } from "node:path";
+import { join, resolve, basename, dirname, relative } from "node:path";
 import { tmpdir, homedir } from "node:os";
 
 const SKILLS_DIR = toPathEarly(process.env.GANDALF_SKILLS_DIR || join(homedir(), ".agents", "skills"));
@@ -457,18 +458,107 @@ async function worker() {
 
 await Promise.all(Array.from({ length: Math.min(opts.max, runners.length) }, () => worker()));
 
-// ---- summary ---------------------------------------------------------------
+// ---- merge order -----------------------------------------------------------
 
-results.sort((a, b) => (a.lane < b.lane ? -1 : a.lane > b.lane ? 1 : 0));
+/**
+ * Gandalf does not merge in the order lanes finished, and not alphabetically. He merges
+ * in the order that keeps each step cheap and reviewable:
+ *
+ *   1. A lane that others depend on goes first — a foundation that lands late forces
+ *      every dependent lane to rebase.
+ *   2. Within that, the lane whose work is most likely to be rejected goes first, so a
+ *      bounce is discovered before other lanes have built on top of it.
+ *   3. Biggest blast radius last: touching many files or shared code late means fewer
+ *      things to re-verify if it has to be reverted.
+ *
+ * File overlap is the hard signal — two lanes touching one file WILL conflict, and the
+ * one to merge second is the one that rebases. Report that plainly rather than letting
+ * the user discover it at merge time.
+ */
+const MERGE_RANK = {
+  // Foundations and small, likely-rejected fixes first.
+  bugfix: 0, chores: 1, devops: 2, feature: 3, complex: 4, ui: 5,
+};
+
+function touchedList(r) {
+  if (!Array.isArray(r.touchedFiles)) return [];
+  // Relay returns `git status --porcelain` lines. Untracked files arrive as
+  // "?? notes/" — a DIRECTORY, not a file — so two lanes each creating a different
+  // file in one new directory would look like a collision. Expand directories to the
+  // files inside them before comparing, or the overlap warning cries wolf.
+  const files = [];
+  for (const raw of r.touchedFiles) {
+    const entry = String(raw).replace(/^(.{2})\s+/, "").trim();
+    if (!entry) continue;
+    if (entry.endsWith("/")) {
+      const dir = r.worktreeDir || plan.repo;
+      try {
+        for (const f of walkFiles(dir, entry)) files.push(f);
+      } catch { /* unreadable dir: fall back to the entry itself */ files.push(entry); }
+    } else {
+      files.push(entry);
+    }
+  }
+  return files;
+}
+
+/** Every file under `relDir` in `root`, as repo-relative slash paths. */
+function walkFiles(root, relDir) {
+  const out = [];
+  const base = join(root, relDir.replace(/\/+$/, ""));
+  if (!existsSync(base)) return out;
+  const stack = [base];
+  while (stack.length) {
+    const dir = stack.pop();
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) stack.push(full);
+      // relative(), not a manual slice: string offsets break on mixed separators and
+      // silently truncate the first character of the name.
+      else out.push(relative(root, full).replace(/\\/g, "/"));
+    }
+  }
+  return out;
+}
+
+function planMergeOrder(done) {
+  // Only lanes that produced work can be merged; a failed lane has nothing to land.
+  const merges = done.filter((r) => OK_STATUSES.has(r.status) && r.worktreeDir);
+  const steps = [];
+  for (const r of merges) {
+    const files = touchedList(r);
+    // Overlap against every lane already scheduled to merge BEFORE this one.
+    const earlier = merges.filter((o) => o !== r && (MERGE_RANK[o.lane] ?? 9) < (MERGE_RANK[r.lane] ?? 9));
+    const overlaps = [];
+    for (const o of earlier) {
+      const shared = touchedList(o).filter((f) => files.includes(f));
+      if (shared.length) overlaps.push({ lane: o.lane, files: shared });
+    }
+    steps.push({
+      lane: r.lane,
+      rank: MERGE_RANK[r.lane] ?? 9,
+      files,
+      worktree: r.worktreeDir,
+      sessionId: r.sessionId,
+      overlaps,
+    });
+  }
+  steps.sort((a, b) => a.rank - b.rank || (a.lane < b.lane ? -1 : 1));
+  return steps;
+}
+
+const mergeSteps = planMergeOrder(results);
+// Declared once, outside the output branch — the exit code depends on it either way.
 const failed = results.filter((r) => !OK_STATUSES.has(r.status));
 
 if (opts.json) {
-  console.log(JSON.stringify({ repo: repoRoot, base: baseSha, outDir, results }, null, 2));
+  console.log(JSON.stringify({ repo: repoRoot, base: baseSha, outDir, results, mergeOrder: mergeSteps }, null, 2));
 } else {
+  results.sort((a, b) => (a.lane < b.lane ? -1 : a.lane > b.lane ? 1 : 0));
   console.log(`\n===== FELLOWSHIP SUMMARY =====`);
   const pad = Math.max(...results.map((r) => r.lane.length), 4);
   for (const r of results) {
-    const touched = Array.isArray(r.touchedFiles) ? `${r.touchedFiles.length} file(s)` : "n/a";
+    const touched = r.touchedFiles ? `${touchedList(r).length} file(s)` : "n/a";
     console.log(`${r.lane.padEnd(pad)}  ${r.status.padEnd(14)} ${String(r.seconds).padStart(5)}s  ${touched}`);
   }
   console.log(`\n${results.length - failed.length}/${results.length} lane(s) ok.`);
@@ -484,12 +574,33 @@ if (opts.json) {
     for (const r of resumable) console.log(`  [${r.lane}]  opencode --session ${r.sessionId} --continue`);
   }
 
-  // Worktrees are where the lanes' work actually lives until the orchestrator merges.
-  const withTrees = results.filter((r) => r.worktreeDir);
-  if (withTrees.length) {
-    console.log(`\nLane worktrees (merge these back in review order):`);
-    for (const r of withTrees) console.log(`  [${r.lane}]  ${r.worktreeDir}`);
+  // Worktrees are where the lanes' work lives until Gandalf merges it. The order is
+  // not the order they finished — see planMergeOrder() for the rule.
+  if (mergeSteps.length) {
+    console.log(`\nMerge order — review each diff, then land it:`);
+    mergeSteps.forEach((s, i) => {
+      const files = s.files.length ? `${s.files.length} file(s)` : "no tracked changes";
+      console.log(`  ${i + 1}. [${s.lane}]  ${files}`);
+      console.log(`     ${s.worktree}`);
+      for (const o of s.overlaps) {
+        console.log(`     ⚠ overlaps [${o.lane}] on ${o.files.join(", ")} — this one rebases`);
+      }
+    });
+    const clashing = mergeSteps.filter((s) => s.overlaps.length);
+    if (clashing.length) {
+      console.log(`\n${clashing.length} lane(s) share files with an earlier lane. Landing in the order above means the EARLIER lane merges clean and the later one rebases. Do not reorder without reading both diffs.`);
+    } else {
+      console.log(`\nNo file overlap between lanes — the order above is safe as written.`);
+    }
   }
+
+  // The gate plan itself — what Gandalf must run before merging anything.
+  console.log(`\nBefore you merge (${mergeSteps.length} lane(s) to land):`);
+  console.log(`  1. Read each diff — a hobbit's report is a claim, not evidence.`);
+  console.log(`  2. Run the project gates on the merged tree, not each worktree alone.`);
+  console.log(`  3. Guards on the artifact: clean-code-guard / test-guard / docs-guard.`);
+  console.log(`  4. UI touched? a clean qa round gates the ui lane before it lands.`);
+  console.log(`  5. Land one lane at a time — a conflict is cheapest when it is one lane's.`);
 }
 
 // Clean up worktrees, but NEVER one that holds work. A failed lane may still have

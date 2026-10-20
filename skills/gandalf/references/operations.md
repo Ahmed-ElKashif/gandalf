@@ -180,9 +180,12 @@ Plan file:
 
 Key flags:
 
-- `--max <n>` (default **4**) bounds concurrency. Free tiers rate-limit per *account*,
-  not per process — measured: five concurrent free-model calls completed in 16s with no
-  429, so 4 leaves headroom. Raise it with evidence, not hope.
+- `--max <n>` (default **4**) bounds concurrency. **The default is a conservative judgment
+  call, not a measured optimum.** Measured: five concurrent free-model calls, all correct,
+  in 16s, zero rate limits — but those were one-line replies, not multi-minute lanes, and
+  free tiers rate-limit per *account*, so the ceiling is not per-process. Four is the
+  common simultaneous fleet (`feature`, `ui`, `bugfix`, `devops`). Raise it once your own
+  runs are the evidence, not before.
 - `--dry-run` prints the resolved worktrees, commands, and `tail -f` lines without
   creating anything. Run it first.
 - `--no-worktree` shares one tree for every lane. It prints a warning, because two lanes

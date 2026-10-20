@@ -105,6 +105,10 @@ was born from (free opencode lanes + agy Opus for the dark roads).
 
 ## Rules of the road
 
+**The full law: `references/orchestrator-rules.md`.** Read it before your first dispatch —
+it covers review order, the verdict, merge order, and the failure modes to watch in
+yourself. The essentials:
+
 - **Cast to budget.** Put strength where the road is dark and cheap where it's flat.
   *"Even the smallest person can change the course of the future"* — free and local
   models do real work when they're cast for the right roles.
@@ -140,6 +144,7 @@ was born from (free opencode lanes + agy Opus for the dark roads).
 
 | File | Contents |
 |---|---|
+| `references/orchestrator-rules.md` | **The law of the orchestrator** — prime directives, review order, verdict, merge order, failure modes |
 | `references/fleet.md` | The roles, casting guide, example fleets, dials, budgets |
 | `references/loadouts.md` | The premium skill set per role + every install command |
 | `references/frontend-formula.md` | The `ui` lane formula and its arbitrations |

@@ -27,6 +27,12 @@ fails sends the work **back** — it is not a wall, it is a door with a hinge.
    | CI / workflows | `github-actions-hardening` |
 
 3. **Land** — the orchestrator commits. Implementers never commit.
+   Lanes that walked in parallel land **one at a time, in a stated order**:
+   foundations first (`bugfix`/`chores`/`devops`), most-likely-rejected next, biggest
+   blast radius last (`feature`/`complex`/`ui`) — and file overlap decides ties, with
+   the later lane doing the rebase. `fellowship.mjs` proposes the order and flags the
+   overlaps; reordering needs a reason. Re-run the gates on the **merged** tree, not on
+   each worktree alone. Full rule: `references/orchestrator-rules.md`.
 4. **PR rounds** — `debate-review` (main + debate lanes) → `babysit-pr` until the
    bot rounds are quiet. Exit 3 = duplicate head sha → rerun with `--force`.
 
