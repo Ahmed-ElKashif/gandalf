@@ -68,7 +68,7 @@ One concept: **lanes**. A lane names an implementer and optional dials.
 11. Arm from `packs.json` (shipped inside this skill) — the single source of truth
     for what to install and what to credit. Never hand-roll an install list. Show
     the delta table, take one approval, install in file order, `delegate-skills`
-    first. Re-arms show only what changed.
+    first, then apply the verified patches. Re-arms show only what changed.
 
 (`<skill-dir>` = this skill's folder — the one containing this `SKILL.md`.)
 
@@ -103,9 +103,21 @@ npx skills add amElnagdy/delegate-skills -g -y     # first, always
 # …then the remaining core + ui entries, in packs.json order
 ```
 
+Then apply and verify the local patches — a reinstall of an upstream pack must not
+silently drop the fix:
+
+```bash
+node "<skill-dir>/scripts/patch-skills.mjs" apply
+```
+
+It is idempotent. `check` verifies without changing anything and exits nonzero on
+`pending` or `drift`. On `drift`, stop and report — never force a patch onto code it
+was not written for. Detail: `references/arming.md`.
+
 Only `defaultTiers` (`core`, `ui`) install by default. `stack` and `devops` are
-offered per repo. `optional` (`security-review`) is **never** installed
-automatically — it lives outside the loop.
+offered per repo. `optional` (`security-review`, `ui-review-loop`) is **never**
+installed automatically — both live outside the loop; `ui-review-loop` only when
+the user asks for recorded video rounds.
 
 Two runtime requirements worth stating plainly, both satisfied by the core tier:
 

@@ -71,10 +71,13 @@ was born from (free opencode lanes + agy Opus for the dark roads).
 2. **Arm the machine** — install the packs your fleet needs, in tier order. The
    canonical list is **`packs.json`**, shipped inside the `council-of-elrond` skill
    (same repo): tiers, licences, install order, credits. `core` + `ui` by default;
-   `stack`/`devops` only for repos that use them; `security-review` stays out of the
-   loop. Start with `npx skills add amElnagdy/delegate-skills -g -y` (relays +
-   `delegate-setup`), then the rest in file order. Full batch on Windows:
-   `scripts/install-skills.ps1`.
+   `stack`/`devops` only for repos that use them; `security-review` and
+   `ui-review-loop` stay out of the loop (the latter is the opt-in video loop).
+   Start with `npx skills add amElnagdy/delegate-skills -g -y` (relays +
+   `delegate-setup`), then the rest in file order. Then apply the verified patches:
+   `node <council>/scripts/patch-skills.mjs apply` — idempotent, and it repairs the
+   fixes a reinstall would drop. Full batch on Windows: `scripts/install-skills.ps1`
+   (it runs the patch step too).
 3. **Cast the fellowship** — fastest: run the **`council-of-elrond`** skill (same
    repo): one question, all ten roles offered, config + preambles written and
    verified for you. Manually: start from `presets/free-first.json` or

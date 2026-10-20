@@ -153,8 +153,9 @@ can see. `qa` gates behaviour; `qa-look` witnesses appearance and cannot overtur
 
 Video is **optional** and is not the primary stream. If a round cites video, the file must
 be confirmed present — recording fails silently when the recorder cannot finalize.
-`ui-review-loop` (`amelnagdy`, tier `core`) is kept for the case where a human will watch
-a video and comment. It is not this gate.
+`ui-review-loop` (`amelnagdy`, Apache-2.0, tier `optional`) is the opt-in loop for the
+case where a human will watch a video and comment. It is not this gate, and it is not
+installed by default.
 
 ## debate-review
 

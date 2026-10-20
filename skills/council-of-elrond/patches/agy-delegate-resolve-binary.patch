@@ -1,0 +1,72 @@
+diff --git a/scripts/relay.mjs b/scripts/relay.mjs
+index 100d8d9..802b647 100644
+--- a/scripts/relay.mjs
++++ b/scripts/relay.mjs
+@@ -107,7 +107,7 @@
+ 
+ import {spawn, execFileSync, spawnSync } from "node:child_process";
+ import { createHash } from "node:crypto";
+-import { mkdirSync, writeFileSync, renameSync, readFileSync, readlinkSync, lstatSync, existsSync, appendFileSync, realpathSync, openSync, fstatSync, readSync, closeSync } from "node:fs";
++import { mkdirSync, writeFileSync, renameSync, readFileSync, readlinkSync, lstatSync, statSync, existsSync, appendFileSync, realpathSync, openSync, fstatSync, readSync, closeSync } from "node:fs";
+ import {join, resolve, basename, dirname, relative, isAbsolute } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import { constants, tmpdir } from "node:os";
+@@ -314,9 +314,48 @@ function killChild(child, signal = "SIGTERM") {
+   }
+ }
+ 
++/**
++ * Resolve the agy binary.
++ *
++ * LOCAL PATCH (not upstream). `spawn("agy")` resolves through PATH, but the
++ * Antigravity installer registers its directory on the *User* PATH only, which a
++ * process started before the install — or one whose parent inherited just the
++ * Machine PATH — never sees. agy then reports `agy_unavailable (exit 127)` even
++ * though the binary is present and working.
++ *
++ * PATH is still tried first, so an on-PATH install behaves exactly as before.
++ * The fallback is consulted only when a plain spawn would fail. Delete this
++ * function and revert the two call sites to restore stock behaviour.
++ */
++function agyBinary() {
++  try {
++    execFileSync("agy", ["--version"], { stdio: "ignore", timeout: 10_000 });
++    return "agy";
++  } catch (err) {
++    // Only a genuinely missing binary falls through to the candidates; a binary
++    // that exists but errors must keep its real error.
++    if (err && err.code !== "ENOENT") return "agy";
++  }
++  const home = process.env.USERPROFILE || process.env.HOME || "";
++  const localAppData = process.env.LOCALAPPDATA || "";
++  const candidates = [
++    localAppData && join(localAppData, "agy", "bin", process.platform === "win32" ? "agy.exe" : "agy"),
++    home && join(home, ".antigravity", "bin", process.platform === "win32" ? "agy.exe" : "agy"),
++    home && join(home, ".local", "bin", "agy"),
++  ].filter(Boolean);
++  for (const candidate of candidates) {
++    try {
++      if (statSync(candidate).isFile()) return candidate;
++    } catch {
++      // keep looking
++    }
++  }
++  return "agy";
++}
++
+ function agyVersion(timeoutMs) {
+   try {
+-    const out = execFileSync("agy", ["changelog"], {
++    const out = execFileSync(agyBinary(), ["changelog"], {
+       encoding: "utf8",
+       timeout: Math.min(timeoutMs, VERSION_PROBE_TIMEOUT_MS),
+       killSignal: "SIGKILL",
+@@ -629,7 +668,7 @@ function dispatchToAgy(opts, brief, run, writeResult, watchdogMs, stallMs) {
+   const argv = buildArgv(opts, brief, run);
+   // Antigravity's installer provides a native `agy` binary. Launch directly so
+   // multi-line briefs and paths with spaces are passed as argv, not shell text.
+-  const child = spawn("agy", argv, {
++  const child = spawn(agyBinary(), argv, {
+     cwd: opts.cd,
+     env: { ...process.env, PWD: opts.cd },
+     stdio: ["ignore", "pipe", "pipe"],

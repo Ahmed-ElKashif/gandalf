@@ -1,0 +1,60 @@
+diff --git a/scripts/lib/local.mjs b/scripts/lib/local.mjs
+index 4f08e02..66036bf 100644
+--- a/scripts/lib/local.mjs
++++ b/scripts/lib/local.mjs
+@@ -7,6 +7,15 @@ import { run, text, log } from './shell.mjs';
+ 
+ const STRICT_UTF8 = new TextDecoder('utf-8', { fatal: true });
+ 
++/** Block briefly without pulling in a dependency. Node has no sync sleep built in. */
++function sleepSync(ms) {
++  const end = Date.now() + ms;
++  while (Date.now() < end) {
++    try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); return; }
++    catch { /* Atomics.wait can be unavailable; fall through to a spin */ }
++  }
++}
++
+ function gitText(repoDir, args, opts) {
+   return text('git', ['-C', repoDir, ...args], opts);
+ }
+@@ -510,9 +519,28 @@ export function snapshotWorkingTree(repoDir, { keep = false, base } = {}) {
+   }
+ 
+   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'debate-review-local-'));
+-  const cleanupNow = () => {
+-    if (!keep) fs.rmSync(tmp, { recursive: true, force: true });
++
++  // Cleanup must never be the thing that fails. When a relay is killed from outside
++  // (the harness's SIGTERM, which Windows cannot deliver to a handler), its child
++  // process still holds handles to this directory, and rmSync throws EPERM — masking
++  // whatever actually went wrong. Retry briefly for the handles to drop, then give up
++  // quietly and say where the snapshot is: an orphaned dir is harmless, a misleading
++  // EPERM is not.
++  const removeSnapshot = (why) => {
++    if (keep) return;
++    for (let attempt = 0; attempt < 5; attempt++) {
++      try { fs.rmSync(tmp, { recursive: true, force: true }); return; }
++      catch (error) {
++        if (error.code !== 'EPERM' && error.code !== 'EBUSY') throw error;
++        if (attempt === 4) {
++          log(`could not remove the temporary snapshot (${error.code}); it is safe to delete: ${tmp}`);
++          return;
++        }
++        sleepSync(200);
++      }
++    }
+   };
++  const cleanupNow = () => removeSnapshot('setup failed');
+ 
+   try {
+     fs.rmSync(tmp, { recursive: true, force: true });
+@@ -549,7 +577,7 @@ export function snapshotWorkingTree(repoDir, { keep = false, base } = {}) {
+       pr,
+       cleanup: () => {
+         if (keep) log(`keeping local snapshot at ${tmp}`);
+-        else fs.rmSync(tmp, { recursive: true, force: true });
++        else removeSnapshot('done');
+       },
+     };
+   } catch (error) {

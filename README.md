@@ -277,20 +277,43 @@ skills/
 │   ├── presets/             free-first.json
 │   ├── templates/           fleet.template.json · preambles.example.md
 │   └── scripts/             install-skills.ps1 (reads the council's packs.json)
-└── council-of-elrond/
-    ├── SKILL.md
-    ├── packs.json           the manifest — what to install, and the credits source
-    ├── NOTICE.md            MIT attribution for the vendored engine
-    ├── references/          casting · arming
-    ├── presets/             free-first.json
-    ├── templates/           preambles.example.md
-    └── scripts/             vendored delegate-setup engine (config · discover · implementers · lane)
+├── council-of-elrond/
+│   ├── SKILL.md
+│   ├── packs.json           the manifest — what to install, and the credits source
+│   ├── NOTICE.md            attribution for the vendored engine and the patches
+│   ├── patches/             verified diffs for installed third-party skills
+│   ├── references/          casting · arming
+│   ├── presets/             free-first.json
+│   ├── templates/           preambles.example.md
+│   └── scripts/             vendored engine + patch-skills.mjs (apply · check)
 └── palantir/                OUR OWN child skill — the qa lane's UI evidence contract
     ├── SKILL.md
     ├── references/          webmcp · timeline · coverage-audit · limits · formats
     ├── scripts/             round.mjs — the evidence runner (start · run · assert · look · stop)
     └── assets/              recorder.js — the DOM timeline (derived from ui-review-loop)
 ```
+
+## Verified patches
+
+A reinstall of an upstream skill replaces its files. Three packs need a small fix that
+upstream has not taken yet, so the repo carries those fixes as exact unified diffs in
+[`skills/council-of-elrond/patches/`](skills/council-of-elrond/patches/):
+
+| Patch | Target | Fix |
+|---|---|---|
+| `agy-delegate-resolve-binary` | `delegate-skills` → `agy-delegate` | resolve the Antigravity binary outside the current process's PATH |
+| `debate-review-snapshot-cleanup` | `review-skills` → `debate-review` | retry a Windows `EPERM` on snapshot cleanup instead of masking the real error |
+| `ui-review-loop-version-and-video` | `ui-review-loop` (optional) | separate the version floor from the verified contract; never ship a zero-byte video; find the native CLI on Windows |
+
+Arming runs `node skills/council-of-elrond/scripts/patch-skills.mjs apply` after the
+installs. The command is idempotent. `check` verifies without changing anything and
+exits nonzero on `pending` or `drift`; `drift` means upstream changed the surrounding
+code, and the verifier refuses to guess. A missing optional pack is `skipped`, not an
+error. Requires `git` on PATH (`git apply` is the engine).
+
+A patch is not a fork: the dependency stays upstream, and the diff is the smallest
+thing that makes the installed copy correct. If upstream takes the fix, delete the
+entry.
 
 ## Credits
 
@@ -308,7 +331,7 @@ credited without being installed from there. Listed in install order.
 | [`obra/superpowers`](https://github.com/obra/superpowers) | MIT | `writing-plans`, `systematic-debugging`, `receiving-code-review` and the surrounding discipline |
 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | MIT | `grilling`, `to-tickets`, `code-review`, `domain-modeling` — the orchestrator's interrogation and the judges' scenario-hunting |
 | **`palantír`** — this repo ([`skills/palantir/`](skills/palantir/)) | MIT | **our own child skill.** UI verification through the page's own WebMCP tools plus the DOM timeline and the network HAR — structured evidence instead of a screenshot loop, with vision as *one* deliberate pass on appearance. The `qa` lane's whole method |
-| [`amelnagdy/ui-review-loop`](https://github.com/amelnagdy/ui-review-loop) | unverified | kept for the case where a human will watch a video and comment — **not** the `ui`/`qa` evidence path any more. palantír's recorder is derived from it |
+| [`amelnagdy/ui-review-loop`](https://github.com/amelnagdy/ui-review-loop) | Apache-2.0 | **tier `optional`** — the human-watches-video loop, installed only on request. **Not** the `ui`/`qa` evidence path. A verified patch fixes its version gate and silent video failure when it is installed. palantír's recorder is derived from it |
 | [`vercel-labs/agent-browser`](https://github.com/vercel-labs/agent-browser) | unverified | the browser backend `palantír` drives. Its experimental WebMCP support is **on by default** for a locally launched Chrome — the channel palantír's tool-call evidence rides |
 | [`emilkowalski/skills`](https://github.com/emilkowalski/skills) | MIT | interface craft and motion — `emil-design-eng`, the `animate` family, `apple-design` |
 | [`Leonxlnx/taste-skill`](https://github.com/Leonxlnx/taste-skill) | MIT | art direction for public and marketing surfaces |

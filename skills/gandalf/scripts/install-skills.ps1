@@ -12,7 +12,10 @@
 # Usage:      pwsh -File scripts/install-skills.ps1                  # core + ui (the default)
 #             pwsh -File scripts/install-skills.ps1 -SkipStackPacks  # core + ui only (same as default)
 #             pwsh -File scripts/install-skills.ps1 -All             # everything except `optional`
-#             pwsh -File scripts/install-skills.ps1 -All -IncludeOptional
+#             pwsh -File scripts/install-skills.ps1 -All -IncludeOptional  # + security-review, ui-review-loop
+#
+# After installing, it runs the council's patch verifier (`patch-skills.mjs apply`) so a
+# reinstall repairs the verified upstream fixes instead of silently dropping them.
 #
 # Requires:   Node 18+ (npx). Optional: gh (PR lanes). ffmpeg is only needed if you
 #             record video - palantir's evidence does not depend on it.
@@ -84,5 +87,23 @@ if ($skipped.Count -gt 0) {
 Write-Host "`n=== Installed (global) ===" -ForegroundColor Green
 & npx --yes skills ls -g
 
+# A reinstall of an upstream pack replaces its files; the verifier puts our fixes back
+# and fails loudly when upstream has moved instead of guessing.
+$patchFailed = $false
+$patchScript = Join-Path $PSScriptRoot '..\..\council-of-elrond\scripts\patch-skills.mjs'
+if (Test-Path $patchScript) {
+    Write-Host "`n=== Verified patches ===" -ForegroundColor Green
+    & node $patchScript apply
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "    patch step needs attention (exit $LASTEXITCODE) - see above" -ForegroundColor Yellow
+        $patchFailed = $true
+    }
+} else {
+    Write-Host "`n    patch verifier not found at $patchScript - the install is unverified" -ForegroundColor Yellow
+    $patchFailed = $true
+}
+
 Write-Host "`nDone. The fellowship is armed. Reviewers live in the orchestrator session;"
 Write-Host "headless implementers pick new skills up on their next run."
+
+if ($patchFailed) { exit 1 }

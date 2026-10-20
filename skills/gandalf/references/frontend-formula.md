@@ -10,9 +10,11 @@ direction per run.
   details that make software feel great).
 - The project's `DESIGN.md` — read it first. Its tokens and patterns win over generic
   taste. If absent, generate one with `create-design-md` and flag that in the report.
-- `ui-review-loop` — kept for the human-video case, not the gate.
 - The evidence gate lives with the **`qa` lane** (`palantír`), not here: `ui` builds,
   `qa` verifies. Read that section before claiming done.
+
+`ui-review-loop` is tier `optional` and installed only on request. It is the
+human-watches-video loop, not part of this formula and not the gate.
 
 ## Per surface
 

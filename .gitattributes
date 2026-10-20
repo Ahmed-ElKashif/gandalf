@@ -1,0 +1,4 @@
+# Unified diffs are applied by `git apply` and must keep the line endings they were
+# generated with. The repo may be checked out with core.autocrlf=true; without this
+# rule the patch bytes change on checkout, which makes a real drift harder to read.
+*.patch text eol=lf -whitespace

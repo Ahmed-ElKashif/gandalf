@@ -1,0 +1,267 @@
+diff --git a/scripts/round.mjs b/scripts/round.mjs
+index 3d57351..5f55bcd 100644
+--- a/scripts/round.mjs
++++ b/scripts/round.mjs
+@@ -85,6 +85,23 @@ const NEUTRAL_RECORDING_PAGE = "about:blank";
+ // Output ceiling for a wrapped operator command; AR_AB_RUN_MAX_BUFFER exists so the
+ // self-test can shrink it and reach the overflow path hermetically.
+ const AB_RUN_MAX_BUFFER = parseInt(process.env.AR_AB_RUN_MAX_BUFFER, 10) || 64 * 1024 * 1024;
++
++// Resolve the CLI without a shell. On Windows the npm install exposes only a .cmd/.ps1 shim,
++// which `spawnSync` cannot execute, so probe the native .exe explicitly instead of trusting
++// PATH (the same resolution palantir uses). `AR_AB_BIN` overrides it for odd installs.
++const AB_BIN = (() => {
++  if (process.env.AR_AB_BIN) return process.env.AR_AB_BIN;
++  if (process.platform === "win32") {
++    for (const c of [
++      path.join(process.env.USERPROFILE || "", "bin", "agent-browser.exe"),
++      path.join(process.env.USERPROFILE || "", "bin", "agent-browser-win32-x64.exe"),
++      path.join(process.env.LOCALAPPDATA || "", "Programs", "agent-browser", "agent-browser.exe"),
++    ]) {
++      try { if (fs.existsSync(c)) return c; } catch {}
++    }
++  }
++  return "agent-browser";
++})();
+ // The relay reports a lost-and-re-established connection through an execute warning; any such
+ // warning on a browser-control round is a continuity break the runner must fail closed on.
+ const BC_RECONNECT_RE = /re-established|re-resolved|connection was lost|reconnect/i;
+@@ -295,14 +312,14 @@ function stopSharedCapture() {
+     const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "ar-netstop-"));
+     registerExitCleanup(() => { try { fs.rmSync(scratch, { recursive: true, force: true }); } catch {} });
+     try {
+-      const r = spawnSync("agent-browser", ["network", "har", "stop", path.join(scratch, "network.raw.har")], { encoding: "utf8", timeout: AB_CAPTURE_STOP_TIMEOUT_MS });
++      const r = spawnSync(AB_BIN, ["network", "har", "stop", path.join(scratch, "network.raw.har")], { encoding: "utf8", timeout: AB_CAPTURE_STOP_TIMEOUT_MS });
+       if (r.error) notes.push("the network capture could not be stopped");
+     } finally {
+       try { fs.rmSync(scratch, { recursive: true, force: true }); } catch {}
+     }
+   } catch { notes.push("the network capture could not be stopped"); }
+   try {
+-    const r = spawnSync("agent-browser", ["record", "stop"], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: AB_CAPTURE_STOP_TIMEOUT_MS });
++    const r = spawnSync(AB_BIN, ["record", "stop"], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: AB_CAPTURE_STOP_TIMEOUT_MS });
+     if (r.error) notes.push("the video recorder could not be stopped");
+   } catch { notes.push("the video recorder could not be stopped"); }
+   return notes;
+@@ -318,7 +335,7 @@ function stopSharedCapture() {
+ function releaseSharedSession() {
+   const notes = [];
+   try {
+-    const r = spawnSync("agent-browser", ["close"], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: AB_CAPTURE_STOP_TIMEOUT_MS });
++    const r = spawnSync(AB_BIN, ["close"], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: AB_CAPTURE_STOP_TIMEOUT_MS });
+     if (r.error) notes.push("the browser session could not be closed — close it with 'agent-browser close'");
+   } catch { notes.push("the browser session could not be closed — close it with 'agent-browser close'"); }
+   return notes;
+@@ -338,7 +355,7 @@ function releaseMachineLock(root, roundId) {
+ // ---------- agent-browser plumbing ----------
+ 
+ function ab(args, { allowFail = false } = {}) {
+-  const r = spawnSync("agent-browser", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
++  const r = spawnSync(AB_BIN, args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+   if (r.error) die(`agent-browser failed to launch: ${r.error.message}`);
+   if (r.status !== 0 && !allowFail) {
+     die(`agent-browser ${args[0]} failed (exit ${r.status}): ${(r.stderr || r.stdout || "").trim().slice(0, 500)}`);
+@@ -356,27 +373,64 @@ function abVersion() {
+ // contract shows up as broken evidence — the worst symptom an evidence tool has.
+ const AB_CONTRACT_MIN_MAJOR = 0;
+ const AB_CONTRACT_MIN_MINOR = 32;
++// 0.39 is what this copy was verified against (0.39.1, win32). The floor stays at 0.32: refusing
++// a version that still works is worse than naming the one actually exercised.
++const AB_VERIFIED_MAJOR = 0;
++const AB_VERIFIED_MINOR = 39;
+ const AB_CONTRACT = `${AB_CONTRACT_MIN_MAJOR}.${AB_CONTRACT_MIN_MINOR}.x`;
++const AB_VERIFIED = `${AB_VERIFIED_MAJOR}.${AB_VERIFIED_MINOR}.x`;
++
++function abAtLeastVerified(major, minor) {
++  return major > AB_VERIFIED_MAJOR || (major === AB_VERIFIED_MAJOR && minor >= AB_VERIFIED_MINOR);
++}
++
+ // Returns { fatal, message }, or null when the version is inside the verified contract.
+ // A version that cannot be read, and a version newer than the contract, are both unknowns —
+ // and an unknown warns rather than refuses, the same call the browser-control preflight makes
+ // when doctor cannot determine the extension version. Only a version that can be read AND is
+-// provably older than the contract fails the preflight.
++// provably older than the floor fails the preflight.
+ function abVersionProblem(version) {
+   const m = /^(\d+)\.(\d+)/.exec(String(version == null ? "" : version).trim());
+   if (!m) {
+-    return { fatal: false, message: `agent-browser version could not be determined (it reported ${JSON.stringify(String(version == null ? "" : version))}); this skill records against the ${AB_CONTRACT} recording and network-capture contract — proceeding, and recording the version it reported` };
++    return { fatal: false, message: `agent-browser version could not be determined (it reported ${JSON.stringify(String(version == null ? "" : version))}); this copy is verified against ${AB_VERIFIED} — proceeding, and recording the version it reported` };
+   }
+   const major = Number(m[1]), minor = Number(m[2]);
+   if (major < AB_CONTRACT_MIN_MAJOR || (major === AB_CONTRACT_MIN_MAJOR && minor < AB_CONTRACT_MIN_MINOR)) {
+-    return { fatal: true, message: `agent-browser ${version} is older than the ${AB_CONTRACT} recording and network-capture contract this skill records against — upgrade it (npm i -g agent-browser && agent-browser install) before starting a round` };
++    return { fatal: true, message: `agent-browser ${version} is older than the ${AB_CONTRACT} recording and network-capture contract this skill requires — upgrade it (npm i -g agent-browser && agent-browser install) before starting a round` };
++  }
++  if (!abAtLeastVerified(major, minor)) {
++    return { fatal: false, message: `agent-browser ${version} is older than ${AB_VERIFIED}, the contract this copy was verified against — proceeding; if the evidence looks wrong, check its release notes for recording or network-capture changes` };
+   }
+-  if (major > AB_CONTRACT_MIN_MAJOR || minor > AB_CONTRACT_MIN_MINOR) {
+-    return { fatal: false, message: `agent-browser ${version} is newer than the ${AB_CONTRACT} contract this skill was verified against — proceeding; if the evidence looks wrong, check its release notes for recording or network-capture changes` };
++  if (major > AB_VERIFIED_MAJOR || minor > AB_VERIFIED_MINOR) {
++    return { fatal: false, message: `agent-browser ${version} is newer than ${AB_VERIFIED}, the contract this copy was verified against — proceeding; if the evidence looks wrong, check its release notes for recording or network-capture changes` };
+   }
+   return null;
+ }
+ 
++// A recording that cannot be finalized is not evidence. Measured on win32 with 0.39.x: `record
++// stop` writes a zero-byte file (and at 30 fps the encoder reports falling behind capture),
++// while the DOM timeline and HAR are unaffected. Saying so up front stops a round from
++// claiming a video channel it never had — and stops `resolve` from resting on one.
++function abVideoProblem(version) {
++  const m = /^(\d+)\.(\d+)/.exec(String(version == null ? "" : version).trim());
++  if (!m) return null;
++  const major = Number(m[1]), minor = Number(m[2]);
++  if (process.platform === "win32" && major === 0 && minor === 39) {
++    return `agent-browser ${major}.${minor}.x on win32 cannot finalize a recording (measured: 'record stop' writes a 0-byte file); the DOM timeline and HAR are unaffected, but video is unavailable and a resolution that needs the video channel cannot be recorded`;
++  }
++  return null;
++}
++
++/** Why a stop produced no usable video, or "" when the reason cannot be named. */
++function videoFailureReason(stop, videoFile) {
++  const present = fs.existsSync(videoFile);
++  const size = present ? fs.statSync(videoFile).size : 0;
++  if (present && size === 0) return "the recorder could not finalize the video ('record stop' wrote a 0-byte file)";
++  if (!stop || !stop.ok) return "the recorder did not stop cleanly ('record stop' failed)";
++  if (!present) return "the recorder produced no video file";
++  return "";
++}
++
+ // Evaluate JS in the page. Returns the parsed JSON-ish value agent-browser prints.
+ // Raw eval: last non-status stdout line (agent-browser's value formatting is
+ // length-dependent — never parse it directly; use abEvalJson for data).
+@@ -904,19 +958,19 @@ function makeAbAdapter({ redact }) {
+       return { wallBefore, wallAfter };
+     },
+     recordStop() {
+-      const r = spawnSync("agent-browser", ["record", "stop"], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
++      const r = spawnSync(AB_BIN, ["record", "stop"], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+       return { ok: r.status === 0 };
+     },
+     netStart() {
+-      const har = spawnSync("agent-browser", ["network", "har", "start"], { encoding: "utf8" });
++      const har = spawnSync(AB_BIN, ["network", "har", "start"], { encoding: "utf8" });
+       if (har.status !== 0) process.stderr.write("round: warning: HAR capture unavailable\n");
+     },
+     netStop(harPath) {
+-      spawnSync("agent-browser", ["network", "har", "stop", harPath], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
++      spawnSync(AB_BIN, ["network", "har", "stop", harPath], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+     },
+     consentGate() { /* isolated relay page; no shared-profile consent gate */ },
+     run(spec) {
+-      const r = spawnSync("agent-browser", spec.argv, { encoding: "utf8", maxBuffer: AB_RUN_MAX_BUFFER });
++      const r = spawnSync(AB_BIN, spec.argv, { encoding: "utf8", maxBuffer: AB_RUN_MAX_BUFFER });
+       // a command that never ran to completion — killed by a signal, unspawnable, or cut
+       // off by the output ceiling — comes back with status null, and process.exit(null)
+       // is exit 0. Normalize here so a dead command is never reported as a success.
+@@ -1268,6 +1322,8 @@ function cmdStartAb({ url, redact }) {
+   const abProblem = abVersionProblem(agentBrowser);
+   if (abProblem && abProblem.fatal) die(`preflight: ${abProblem.message}`);
+   if (abProblem) process.stderr.write(`round: warning — ${abProblem.message}\n`);
++  const abVideo = abVideoProblem(agentBrowser);
++  if (abVideo) process.stderr.write(`round: warning — ${abVideo}\n`);
+ 
+   // validate the operator's selectors before the lock, the partial, and any capture: an
+   // invalid list fails the round here with nothing to clean up
+@@ -1294,6 +1350,7 @@ function cmdStartAb({ url, redact }) {
+     segments: [], gaps: [],
+     currentSegmentId: null,
+     viewport: null,
++    videoUnsupported: abVideo || null,
+   };
+   // persist BEFORE recording starts, so abort always works — exclusive create: an existing
+   // marker IS an active round (atomic check-then-act)
+@@ -1311,9 +1368,15 @@ function cmdStartAb({ url, redact }) {
+   rejectSymlinkLeaf(videoPath); // the recorder is an external process writing this leaf
+   // park the session on a neutral page, THEN start capture, THEN open the round's own URL: the
+   // video opens on this round's navigation and nothing earlier, and the HAR — started below,
+-  // still before that navigation — carries the initial page load as network evidence
+-  adapter.open(NEUTRAL_RECORDING_PAGE);
+-  const rec = adapter.recordStart(videoPath);
++  // still before that navigation — carries the initial page load as network evidence.
++  // The park exists only to place the video start, so it is skipped when no recording is made:
++  // agent-browser 0.39.x on win32 hangs on `open about:blank` here, and parking a session that
++  // is not being recorded would trade a missing channel for a round that never starts.
++  let rec = { wallBefore: null, wallAfter: null };
++  if (!abVideo) {
++    adapter.open(NEUTRAL_RECORDING_PAGE);
++    rec = adapter.recordStart(videoPath);
++  }
+   // The round now owns a live browser session, machine-wide and shared. Every exit path out of
+   // start must give it back: process.exit() bypasses every finally in this file, so without
+   // this a start that fails after this line leaves a browser running until someone closes it
+@@ -1682,6 +1745,7 @@ function cmdStop(args) {
+   // cutoff, network first so no network evidence outlives the video it must agree with ----
+   let networkStatus = "missing";
+   let videoCompleteness;
++  let videoReason = "";
+   let harScratch = null;
+   if (bc) {
+     const videoFile = path.join(partial, "video.webm");
+@@ -1700,6 +1764,11 @@ function cmdStop(args) {
+       try { fs.unlinkSync(path.join(partial, "video.webm.json")); } catch {}
+     }
+     videoCompleteness = (stop.ok && videoSize > 0) ? (dropped === 0 ? "complete" : "partial") : (videoSize > 0 ? "partial" : "missing");
++    if (videoCompleteness === "missing") {
++      videoReason = videoFailureReason(stop, videoFile);
++      try { if (fs.existsSync(videoFile) && fs.statSync(videoFile).size === 0) fs.unlinkSync(videoFile); } catch {}
++      process.stderr.write(`round: warning — video unavailable: ${videoReason}\n`);
++    }
+   } else {
+     // the raw capture lands in a freshly created private temporary directory, never in a
+     // repository-controlled path — a pre-placed link at the package path cannot redirect it.
+@@ -1710,7 +1779,7 @@ function cmdStop(args) {
+     harScratch = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "ar-netstop-")));
+     registerExitCleanup(() => { try { fs.rmSync(harScratch, { recursive: true, force: true }); } catch {} });
+     adapter.netStop(path.join(harScratch, "network.raw.har"));
+-    const rs = adapter.recordStop();
++    const rs = st.videoUnsupported ? { ok: false } : adapter.recordStop();
+     // final document probe AFTER recording stops — nothing the video captured from here on
+     // can be finalized without matching DOM evidence
+     const segF = st.segments.find((s) => s.id === st.currentSegmentId);
+@@ -1722,6 +1791,11 @@ function cmdStop(args) {
+     const videoFile = path.join(partial, "video.webm");
+     const videoSize = fs.existsSync(videoFile) ? fs.statSync(videoFile).size : 0;
+     videoCompleteness = rs.ok && videoSize > 0 ? "complete" : (videoSize > 0 ? "partial" : "missing");
++    if (videoCompleteness === "missing") {
++      videoReason = st.videoUnsupported || videoFailureReason(rs, videoFile);
++      try { if (fs.existsSync(videoFile) && fs.statSync(videoFile).size === 0) fs.unlinkSync(videoFile); } catch {}
++      process.stderr.write(`round: warning — video unavailable: ${videoReason}\n`);
++    }
+   }
+ 
+   // Quiet-window confirmation: one more drain AFTER the captures stopped. Anything it picks
+@@ -1895,6 +1969,7 @@ function cmdStop(args) {
+     sync: { confidence, method, clockSkewMs, calibration, anchors },
+     completeness: {
+       video: videoCompleteness,
++      ...(videoReason ? { videoReason } : {}),
+       dom: st.gaps.length ? "partial" : "complete",
+       network: networkStatus,
+       gaps: st.gaps,
+@@ -2350,7 +2425,7 @@ function main() {
+   }
+ }
+ 
+-export { sanitizeHar, redactUrl, drainSegment, bcReject, bcSessionId, bcChunkValid, activeStateProblem, atomicWriteJson, actionTarget, HAR_SECRET_NAME, resolutionProblem, RESOLUTION_ARTIFACTS, nodeVersionProblem, MIN_NODE_MAJOR, abVersionProblem, gitInfo };
++export { sanitizeHar, redactUrl, drainSegment, bcReject, bcSessionId, bcChunkValid, activeStateProblem, atomicWriteJson, actionTarget, HAR_SECRET_NAME, resolutionProblem, RESOLUTION_ARTIFACTS, nodeVersionProblem, MIN_NODE_MAJOR, abVersionProblem, abVideoProblem, videoFailureReason, gitInfo };
+ 
+ const isDirectRun = process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+ if (isDirectRun) main();
+diff --git a/references/formats.md b/references/formats.md
+index 0532ff0..775249b 100644
+--- a/references/formats.md
++++ b/references/formats.md
+@@ -85,6 +85,11 @@ Rules:
+ - `completeness` values: `complete | partial | missing`. A channel is `complete` only when coverage
+   through the round's cutoff can be proven; absence of evidence never counts as evidence of absence
+   (missing video drop data reads `partial`, not zero drops).
++- `completeness.videoReason` is present only when `video` is `missing`: one sentence naming why the
++  recorder produced no video (for example, `record stop` wrote a 0-byte file). A zero-byte
++  `video.webm` is removed rather than shipped, so a missing channel is never represented by an
++  artifact that cannot play. Since a resolution requires the `video` evidence channel, a round with
++  `video: "missing"` cannot carry one.
+ - Gap shape: `{"segmentId":"s-0002","reason":"navigation-tail","droppedFrames":null}`.
+   Gap reasons: `navigation-tail | stop-tail | overflow | truncation | injection-failed | runner-error`.
+   `stop-tail` means activity landed in the window between the cutoff and the captures stopping, so

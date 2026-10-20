@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "_note": "Verified patches to installed third-party skills. Arming runs `patch-skills.mjs apply` after every install, so a reinstall is repaired instead of silently erasing the fix. Each patch is an exact unified diff with context: if upstream moves, `check` reports drift and `apply` refuses rather than guessing. `required` follows the pack's tier — a missing core skill is an error, a missing optional skill is skipped.",
+  "_requires": "git on PATH (`git apply` is the patch engine); no network and no other dependency.",
+  "patches": [
+    {
+      "id": "agy-delegate-resolve-binary",
+      "skill": "agy-delegate",
+      "pack": "delegate-skills",
+      "tier": "core",
+      "required": true,
+      "scope": "general",
+      "files": ["scripts/relay.mjs"],
+      "patch": "agy-delegate-resolve-binary.patch",
+      "upstream": "https://github.com/amElnagdy/delegate-skills",
+      "upstreamCommit": "3aa72d681a79e2a9d09bd9a316353003ae1cb4a7",
+      "upstreamDate": "2026-10-14",
+      "why": "`spawn(\"agy\")` resolves only through PATH, but the Antigravity installer writes the User PATH — which a process started before the install, or one inheriting only the Machine PATH, never sees. The relay then reports `agy_unavailable (exit 127)` although the binary is present and working. PATH is still tried first; the fallback checks the documented install locations and is consulted only when a plain spawn would fail."
+    },
+    {
+      "id": "debate-review-snapshot-cleanup",
+      "skill": "debate-review",
+      "pack": "review-skills",
+      "tier": "core",
+      "required": true,
+      "scope": "general",
+      "files": ["scripts/lib/local.mjs"],
+      "patch": "debate-review-snapshot-cleanup.patch",
+      "upstream": "https://github.com/amElnagdy/review-skills",
+      "upstreamCommit": "3cfce3963b4d4d99a8b9059f1ece6726405b7bd3",
+      "upstreamDate": "2026-10-09",
+      "why": "Cleanup must never be the thing that fails. On Windows a relay killed from outside leaves a child holding the temporary snapshot, and `rmSync` throws EPERM — masking whatever actually went wrong. The patch retries five times for the handles to drop, then names the directory and returns instead of throwing. An orphaned temp dir is harmless; a misleading EPERM is not."
+    },
+    {
+      "id": "ui-review-loop-version-and-video",
+      "skill": "ui-review-loop",
+      "pack": "ui-review-loop",
+      "tier": "optional",
+      "required": false,
+      "scope": "general",
+      "files": ["scripts/round.mjs", "references/formats.md"],
+      "patch": "ui-review-loop-version-and-video.patch",
+      "upstream": "https://github.com/amElnagdy/ui-review-loop",
+      "upstreamCommit": "de1854621ac067d1cf9a81953813e217061af0c7",
+      "upstreamDate": "2026-07-22",
+      "why": "Three defects measured on win32 with agent-browser 0.39.1. (a) The version gate treated anything newer than 0.32.x as a warning, so 0.39.x passed preflight and returned broken evidence; the patch separates a hard floor from the verified contract. (b) The recorder cannot finalize — `record stop` writes a zero-byte file and `record start` can hang — so capture is skipped and `completeness.video` reads \"missing\" with a `videoReason`, instead of shipping an unplayable artifact. (c) `spawnSync` cannot execute the npm .cmd/.ps1 shim on Windows, so the CLI is resolved to its native .exe. `references/formats.md` documents `videoReason`."
+    }
+  ]
+}

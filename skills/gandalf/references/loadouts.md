@@ -18,11 +18,12 @@ this file.
 | Ponytail | `npx skills add DietrichGebert/ponytail -g -y` | `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help` |
 | UI evidence | **ships with this repo** — `skills/palantir/` | `palantir` — OUR OWN child skill: WebMCP tools + DOM timeline + HAR, vision as one deliberate pass |
 | Browser backend | `npx skills add vercel-labs/agent-browser -g -y` | `agent-browser` (driven by `palantir`; its WebMCP support is on by default) |
-| Video-first loop (optional) | `npx skills add amelnagdy/ui-review-loop -g -y` | `ui-review-loop` — kept for the case where a human will watch a video; **not** the `ui`/`qa` evidence path |
 
 **Not in Core:** `security-review` (`getsentry/skills`, Apache-2.0, tier `optional`)
 is deliberately outside the loop — a separate skill the user invokes when they want a
-security pass, not a guard gate. See `gates.md`.
+security pass, not a guard gate. `ui-review-loop` (`amelnagdy`, Apache-2.0, tier
+`optional`) is the human-watches-video loop, installed only on request — **not** the
+`ui`/`qa` evidence path. See `gates.md`.
 
 `packs.json` (in the `council-of-elrond` skill) is the canonical list (tiers,
 licences, install order, the README credits). This file is the per-role narrative.

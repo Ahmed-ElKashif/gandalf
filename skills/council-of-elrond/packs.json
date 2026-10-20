@@ -1,14 +1,14 @@
 {
   "version": 1,
   "_note": "The fellowship's single source of truth. The council (council-of-elrond) reads this file to ARM the machine: it installs every pack whose tier is in defaultTiers, and offers the rest. The README's Credits section is generated from the same entries, in the same order. A pack cannot be installed unless it is credited here, and cannot be credited unless it is installed from here — that is the point of the file. Do not hand-edit the README credits list.",
-  "_where": "This file lives inside the council-of-elrond skill on purpose. The skills CLI installs `skills/<name>/` and drops repo-root files, so a manifest at the repository root would not survive `npx skills add`. It ships here, with the engine that reads it. `scripts/install-skills.ps1` in the gandalf skill resolves the same path in a dev clone and in an installed ~/.agents/skills/ tree.",
+  "_where": "This file lives inside the council-of-elrond skill on purpose. The skills CLI installs `skills/<name>/` and drops repo-root files, so a manifest at the repository root would not survive `npx skills add`. It ships here, with the engine that reads it. `scripts/install-skills.ps1` in the gandalf skill resolves the same path in a dev clone and in an installed ~/.agents/skills/ tree. `patches/manifest.json` records the verified diffs arming applies after install; see `patches/README.md`.",
   "defaultTiers": ["core", "ui"],
   "tiers": {
     "core": "Every fleet. Relays, review pair, guards, the orchestrator and judging loadouts, UI evidence (palantír), and the browser backend it drives.",
     "ui": "Default-on: the `ui` lane's craft packs.",
     "stack": "On demand — only for repos that actually use the framework.",
     "devops": "On demand — only for repos with CI to harden.",
-    "optional": "Deliberately outside the loop. Install and invoke when you want it."
+    "optional": "Deliberately outside the loop. Install when you want it: `security-review` for a security pass, `ui-review-loop` for a human-watches-video round."
   },
   "order": "Entries are listed in install order and in credits order. The delegate-skills entry must stay first: it ships the relays and the delegate-setup engine every --lane dispatch resolves through, so a user can choose their implementers before anything else is cast.",
   "licenseNote": "Entries marked `unverified` have not had their LICENSE checked yet. That is a to-do, not a claim — do not copy them into the README credits as if verified.",
@@ -145,12 +145,12 @@
       "name": "UI Review Loop",
       "repo": "amelnagdy/ui-review-loop",
       "url": "https://github.com/amelnagdy/ui-review-loop",
-      "license": "unverified",
-      "tier": "core",
-      "roles": ["review-main", "review-debate"],
+      "license": "Apache-2.0",
+      "tier": "optional",
+      "roles": [],
       "install": "npx skills add amelnagdy/ui-review-loop -g -y",
       "provides": ["ui-review-loop"],
-      "why": "Kept for the operator-watches-video case and for the coverage-audit methodology palantír was derived from. NOT the ui or qa lane's evidence path any more — palantir is, because this loop's video is video-first and fails silently when ffmpeg lacks libx264."
+      "why": "OPTIONAL, and not installed by default. Kept for the operator-watches-video case and for the coverage-audit methodology palantír was derived from. NOT the ui or qa lane's evidence path any more — palantir is. If you do install it, arming's patch step fixes its version gate and its silent video failure (patches/manifest.json)."
     },
     {
       "id": "agent-browser",
