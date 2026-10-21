@@ -78,7 +78,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, openSync, closeSync
 import { spawn, spawnSync } from "node:child_process";
 import { join, resolve, basename, dirname, relative } from "node:path";
 import { tmpdir, homedir } from "node:os";
-import { resolvePreamblesPath, composeEffectiveBrief, writeEffectiveBrief } from "./preambles.mjs";
+import { resolvePreamblesPath, composeEffectiveBrief, writeEffectiveBrief, missingLaneBlocks } from "./preambles.mjs";
 import { createSnapshot, treeChanged } from "./snapshot.mjs";
 
 const SKILLS_DIR = toPathEarly(process.env.GANDALF_SKILLS_DIR || join(homedir(), ".agents", "skills"));
@@ -420,6 +420,30 @@ if (preamblesPath) {
 } else if (!opts.noPreambles) {
   console.warn("preambles  none found — lanes run without role blocks (generate one from templates/preambles.example.md)");
 }
+
+// Drift between the user's preambles file and the template this repo ships.
+// The user's copy is theirs; the template is the source of truth for the
+// loadouts. A lane whose block is missing walks with the global rules only,
+// and the injector still succeeds — so the gap has to be named. Warn, never
+// overwrite: a role block is the user's, not ours to rewrite.
+const PREAMBLES_TEMPLATE = new URL("../templates/preambles.example.md", import.meta.url);
+if (preamblesPath && existsSync(PREAMBLES_TEMPLATE)) {
+  try {
+    const templateText = readFileSync(PREAMBLES_TEMPLATE, "utf8");
+    const userText = readFileSync(preamblesPath, "utf8");
+    const missing = missingLaneBlocks(templateText, userText, WIRE_ROLES);
+    if (missing.length) {
+      console.error(
+        `fellowship: WARNING — your preambles file is behind the shipped template: no block for ${missing.join(", ")}.`,
+      );
+      console.error(
+        `fellowship:   the template has them — copy the missing blocks across, or re-copy the whole file. Nothing is overwritten for you.`,
+      );
+    }
+  } catch (error) {
+    console.error(`fellowship: could not compare the preambles file with the template — ${error.message}`);
+  }
+}
 for (const lane of plan.lanes) {
   let cwd = repoRoot;
   let worktreeDir = null;
@@ -491,6 +515,10 @@ for (const lane of plan.lanes) {
     brief: lane.brief,
     effectiveBrief,
     preamble: composed?.used ? composed.outputPath : null,
+    // Which loadout the lane carried, so a landing report can say so instead of
+    // guessing: the source file and its hash at dispatch time.
+    preambleSource: composed?.source ?? null,
+    preambleSha: composed?.fingerprint ?? null,
   });
 }
 
@@ -509,6 +537,8 @@ if (opts.dryRun) {
     tail: `tail -f "${r.logPath}"`,
     brief: r.brief,
     preamble: r.preamble,
+    preambleSource: r.preambleSource,
+    preambleSha: r.preambleSha,
     command: `node ${r.argv.map((a) => (a.includes(" ") ? JSON.stringify(a) : a)).join(" ")}`,
   }));
   if (opts.json) console.log(JSON.stringify({ dryRun: true, repo: repoRoot, base: baseSha, outDir, lanes: shown }, null, 2));
@@ -557,6 +587,8 @@ const manifest = {
     brief: r.brief,
     effectiveBrief: r.effectiveBrief,
     preamble: r.preamble,
+    preambleSource: r.preambleSource,
+    preambleSha: r.preambleSha,
     outDir: r.outDir,
     log: r.logPath,
   })),

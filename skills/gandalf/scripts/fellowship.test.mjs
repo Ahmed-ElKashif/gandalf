@@ -82,9 +82,10 @@ function fixture(lanes, { cast } = {}) {
   };
 }
 
-function dispatch(fx, extra = [], { dryRun = true, env = {} } = {}) {
+function dispatch(fx, extra = [], { dryRun = true, env = {}, noPreambles = true } = {}) {
   const r = spawnSync(process.execPath, [
-    FELLOWSHIP, "--plan", fx.planPath, ...(dryRun ? ["--dry-run"] : []), "--json", "--no-preambles", ...extra,
+    FELLOWSHIP, "--plan", fx.planPath, ...(dryRun ? ["--dry-run"] : []), "--json",
+    ...(noPreambles ? ["--no-preambles"] : []), ...extra,
   ], {
     encoding: "utf8",
     env: {
@@ -337,6 +338,52 @@ test("lanes on different relays still run together", () => {
     assert.ok(a && b, "both lanes must have run");
     const overlap = a.start < b.end && b.start < a.end;
     assert.equal(overlap, true, "different relays are independent and must still walk together");
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("a preambles file behind the template is reported, and never rewritten", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "feature", brief, relay: "agy" }],
+    { cast: { feature: { implementer: "agy" } } },
+  );
+  try {
+    const preambles = join(fx.root, "preambles.md");
+    // Only two of the eleven blocks the template ships.
+    writeFileSync(
+      preambles,
+      "## Global rules — every lane\n\n- be lazy\n\n## Aragorn — feature\n\n- feature rule\n",
+      "utf8",
+    );
+    const before = readFileSync(preambles, "utf8");
+    const result = dispatch(fx, ["--preambles", preambles], { noPreambles: false });
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stderr, /behind the shipped template/);
+    assert.match(result.stderr, /qa-look/, "the warning must name the lanes that lost their block");
+    assert.equal(
+      readFileSync(preambles, "utf8"),
+      before,
+      "the user's preambles file belongs to the user — warn, never overwrite",
+    );
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("the run records which preamble each lane carried", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "feature", brief, relay: "agy" }],
+    { cast: { feature: { implementer: "agy" } } },
+  );
+  try {
+    const preambles = join(fx.root, "preambles.md");
+    writeFileSync(preambles, "## Global rules — every lane\n\n- be lazy\n\n## Aragorn — feature\n\n- feature rule\n", "utf8");
+    const result = dispatch(fx, ["--preambles", preambles], { noPreambles: false });
+    assert.equal(result.code, 0, result.stderr);
+    const lane = JSON.parse(result.stdout).lanes.find((l) => l.lane === "feature");
+    assert.equal(lane.preambleSource, preambles);
+    assert.match(lane.preambleSha, /^[0-9a-f]{12}$/);
   } finally {
     fx.cleanup();
   }

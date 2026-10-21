@@ -10,6 +10,9 @@ import {
   buildEffectiveBrief,
   composeEffectiveBrief,
   writeEffectiveBrief,
+  preambleFingerprint,
+  preambleStamp,
+  missingLaneBlocks,
 } from "./preambles.mjs";
 
 const SAMPLE = `# Lane preambles
@@ -184,4 +187,49 @@ test("the shipped preambles template has a block for every wire role", () => {
     const { laneFound } = extractPreambleBlocks(template, role.wire);
     assert.equal(laneFound, true, `missing a ## block for ${role.alias} / ${role.wire}`);
   }
+});
+
+test("preambleFingerprint is the same for CRLF and LF, and changes with the content", () => {
+  const lf = "## rules\n\n- be lazy\n";
+  const crlf = lf.replace(/\n/g, "\r\n");
+  assert.equal(preambleFingerprint(lf), preambleFingerprint(crlf));
+  assert.notEqual(preambleFingerprint(lf), preambleFingerprint(`${lf}- and mean it\n`));
+  assert.match(preambleFingerprint(lf), /^[0-9a-f]{12}$/);
+});
+
+test("the composed brief carries the provenance stamp", () => {
+  const dir = tempDir();
+  try {
+    const brief = join(dir, "brief.md");
+    const preambles = join(dir, "preambles.md");
+    writeFileSync(brief, "task: add hello\n", "utf8");
+    writeFileSync(preambles, SAMPLE, "utf8");
+    const composed = composeEffectiveBrief({
+      briefPath: brief,
+      laneName: "feature",
+      preamblesPath: preambles,
+      outDir: join(dir, "run"),
+    });
+    assert.equal(composed.fingerprint, preambleFingerprint(SAMPLE));
+    assert.equal(composed.source, preambles);
+    assert.match(composed.content, /<!-- gandalf:preamble /);
+    assert.match(composed.content, new RegExp(`sha256="${composed.fingerprint}"`));
+    assert.ok(
+      composed.content.indexOf("gandalf:preamble") < composed.content.indexOf("===== TASK BRIEF ====="),
+      "the stamp must be above the task brief",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("missingLaneBlocks names the lanes the template has and the user file lacks", () => {
+  const template = SAMPLE;
+  const user = SAMPLE.replace(/## Haldir — qa \(behaviour\)[\s\S]*$/, "");
+  const missing = missingLaneBlocks(template, user, ["feature", "ui", "qa", "qa-look"]);
+  assert.deepEqual(missing, ["qa"]);
+  // A file that has every block has no drift.
+  assert.deepEqual(missingLaneBlocks(template, template, ["feature", "ui", "qa"]), []);
+  // A lane the template never had is not drift.
+  assert.deepEqual(missingLaneBlocks(template, template, ["feature", "nonexistent"]), []);
 });

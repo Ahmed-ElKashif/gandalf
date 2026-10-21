@@ -98,7 +98,9 @@ required default.
    injects the matching role block (global rules + the lane's loadout) into every
    delegated brief. Do not hand-prepend; `--no-preambles` is only for a brief that
    already carries its block. A missing lane block warns loudly instead of silently
-   dropping the loadout.
+   dropping the loadout — and so does a preambles file that has fallen behind the
+   template, which is reported, never rewritten. Each composed brief carries a
+   stamp naming the source file and its hash, so a run records the loadout it used.
 5. **Loadouts** — install the per-role skill packs (`scripts/install-skills.ps1` for
    the full batch, or role by role from `references/loadouts.md`).
 

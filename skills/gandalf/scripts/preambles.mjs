@@ -18,6 +18,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
+import { createHash } from "node:crypto";
 
 /**
  * Where the preambles file lives.
@@ -79,9 +80,51 @@ export function extractPreambleBlocks(text, laneName) {
   };
 }
 
+/**
+ * A short, stable fingerprint of a preamble source.
+ *
+ * Line endings are normalised first: the same file checked out on Windows and
+ * on Linux is the same preamble, and its hash must say so.
+ */
+export function preambleFingerprint(text) {
+  return createHash("sha256")
+    .update(String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n"))
+    .digest("hex")
+    .slice(0, 12);
+}
+
+/**
+ * The provenance line that travels with every composed brief.
+ *
+ * A brief records WHICH loadout the lane carried — otherwise a stale
+ * preambles file can ship for months and nobody can tell. It is a comment,
+ * not an instruction: the model is asked to do nothing with it.
+ */
+export function preambleStamp({ source, fingerprint }) {
+  return `<!-- gandalf:preamble source="${source}" sha256="${fingerprint}" -->`;
+}
+
+/**
+ * Lane blocks the shipped template has and the user's file does not.
+ *
+ * The template is the source of truth for the loadouts; the user's copy is
+ * theirs to edit. When the two fall apart, the lanes that lost their block
+ * walk with the global rules only — silently, because the injector still
+ * succeeds. This names them so the drift is visible.
+ */
+export function missingLaneBlocks(templateText, userText, wires) {
+  const missing = [];
+  for (const wire of wires) {
+    if (!extractPreambleBlocks(templateText, wire).laneFound) continue;
+    if (!extractPreambleBlocks(userText, wire).laneFound) missing.push(wire);
+  }
+  return missing;
+}
+
 /** Compose the brief the relay receives. Pure. */
-export function buildEffectiveBrief(originalBrief, preamble) {
-  return `${preamble}\n\n===== TASK BRIEF =====\n\n${String(originalBrief).trim()}\n`;
+export function buildEffectiveBrief(originalBrief, preamble, stamp = null) {
+  const head = stamp ? `${stamp}\n` : "";
+  return `${head}${preamble}\n\n===== TASK BRIEF =====\n\n${String(originalBrief).trim()}\n`;
 }
 
 /**
@@ -93,15 +136,19 @@ export function composeEffectiveBrief({ briefPath, laneName, preamblesPath, outD
   const original = readFileSync(briefPath, "utf8");
   const text = readFileSync(preamblesPath, "utf8");
   const { preamble, globalFound, laneFound } = extractPreambleBlocks(text, laneName);
+  const fingerprint = preambleFingerprint(text);
+  const source = preamblesPath;
   if (!preamble) {
-    return { outputPath: briefPath, content: original, used: false, globalFound, laneFound };
+    return { outputPath: briefPath, content: original, used: false, globalFound, laneFound, source, fingerprint };
   }
   return {
     outputPath: join(outDir, "brief.effective.md"),
-    content: buildEffectiveBrief(original, preamble),
+    content: buildEffectiveBrief(original, preamble, preambleStamp({ source, fingerprint })),
     used: true,
     globalFound,
     laneFound,
+    source,
+    fingerprint,
   };
 }
 

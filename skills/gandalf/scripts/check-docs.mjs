@@ -423,6 +423,48 @@ if (!/one lane per relay at a time/i.test(operationsText)) {
   pass("operations.md: the one-lane-per-relay rule is stated");
 }
 
+// ---- 11c. the preamble's provenance is recorded ------------------------------
+// A lane's loadout is the preamble block it was dispatched with. Nothing
+// recorded WHICH version, so a stale preambles file could ship for months
+// unnoticed. The brief now carries a stamp, the run records it, and a file
+// that has fallen behind the template is reported — never rewritten.
+
+const preambles = read("skills/gandalf/scripts/preambles.mjs");
+const preambleGuard = [
+  [/export function preambleFingerprint\(/, "preambleFingerprint() is not defined"],
+  [/export function preambleStamp\(/, "preambleStamp() is not defined"],
+  [/export function missingLaneBlocks\(/, "missingLaneBlocks() is not defined"],
+  [/<!-- gandalf:preamble/, "the brief carries no provenance stamp"],
+];
+const preambleProblems = preambleGuard
+  .filter(([pattern]) => !pattern.test(preambles))
+  .map(([, label]) => label);
+if (preambleProblems.length) {
+  for (const problem of preambleProblems) fail(`preambles.mjs: ${problem}`);
+} else {
+  pass("preambles.mjs: the brief carries a provenance stamp");
+}
+
+const stampGuard = [
+  [/missingLaneBlocks\(templateText, userText, WIRE_ROLES\)/, "the template drift check is not run"],
+  [/preambleSource: composed\?\.source/, "the run does not record the preamble source"],
+  [/preambleSha: composed\?\.fingerprint/, "the run does not record the preamble hash"],
+];
+const stampProblems = stampGuard
+  .filter(([pattern]) => !pattern.test(fellowship))
+  .map(([, label]) => label);
+if (stampProblems.length) {
+  for (const problem of stampProblems) fail(`fellowship.mjs: ${problem}`);
+} else {
+  pass("fellowship.mjs: the run records the preamble it injected");
+}
+
+if (!/never rewritten|never repaired/i.test(operationsText)) {
+  fail("operations.md: the preamble drift rule is not stated");
+} else {
+  pass("operations.md: the preamble drift rule is stated");
+}
+
 // ---- 12. every registered patch exists and is documented --------------------
 // A patch that is not in the manifest is never applied; a manifest entry whose
 // file is missing breaks arming. Both are silent failures otherwise.

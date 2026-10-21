@@ -29,6 +29,13 @@ its loadout, even on a plain dispatch.
   a degraded run — generate the file from `templates/preambles.example.md` first.
 - A lane block that is missing also warns; the global rules still travel, but the
   role loadout does not.
+- **Every composed brief carries a provenance stamp** — the source file and a
+  short hash of it — and the run manifest records the same per lane. A landing
+  report can say which loadout a lane carried instead of assuming.
+- **Drift is reported, never repaired.** If your preambles file has fallen behind
+  the template this repo ships (a lane block is missing), the dispatcher names the
+  lanes that lost their block and leaves your file alone. The template is the
+  source of truth for the loadouts; the copy in your config dir is yours to edit.
 
 ## Writing the brief
 
