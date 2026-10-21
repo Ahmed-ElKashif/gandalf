@@ -36,11 +36,24 @@ node skills/council-of-elrond/scripts/patch-skills.mjs apply
   result. It is idempotent — arming runs it after every install.
 - `--skills-root <dir>` points at a non-default install (default `~/.agents/skills`).
 - `--only <id[,id]>` limits the run; `--scope <s[,s]>` defaults to `general`.
+- `--manifest <file>` points at another manifest (a fixture in a test, a vendored
+  set in CI). Patch files are looked up next to the manifest.
 - `--json` for CI; `--dry-run` reports what `apply` would do; `--verbose` explains a
   drift with git's own message.
 
 `git` must be on PATH: `git apply` is the engine. It works outside a git worktree,
 which is exactly what an installed skills directory is. There is no network access.
+
+## Line endings
+
+A patch file is **LF with no BOM**. A CR inside a context line never matches a
+target, and a BOM makes `git apply` refuse the file outright — and both read as
+`drift`, which is a lie about upstream. `check-docs.mjs` enforces it.
+
+The **target** may use any line endings: `git apply` matches an installed file
+with CRLF just as it matches an LF one, and it leaves the file's own endings
+alone. `scripts/patch-skills.test.mjs` proves both, so a Windows install and a
+Linux install take the same patch.
 
 ## States
 
@@ -76,7 +89,15 @@ written for. A forced patch is worse than a missing one.
 
    ```bash
    git apply --check -p1 <patch>          # against pristine: must pass
-   git apply --check -R -p1 <patch>       # against the installed copy: must pass
+   git apply --check -p1 <patch>          # against the installed copy: must pass
+   ```
+
+   Both are the FORWARD check: the patch is not applied there yet, so the
+   forward check is the one that must pass. The reverse check is what `check`
+   uses to recognise an already-applied patch — run it after applying:
+
+   ```bash
+   git apply -p1 <patch> && git apply --check -R -p1 <patch>
    ```
 
 6. Add a temporary fake root containing pristine copies and run `check` → `apply` →

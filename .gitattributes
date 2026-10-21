@@ -1,3 +1,10 @@
+# Text files are LF in the worktree, everywhere. A Windows checkout with
+# core.autocrlf=true would otherwise rewrite them to CRLF, and git's stat cache
+# then reports byte-equivalent files as modified — which reads as drift, and
+# breaks the snapshot copy the read-only lanes run against (the copy has to
+# match the repo, or every lane looks like it wrote).
+* text=auto eol=lf
+
 # Unified diffs are applied by `git apply` and must keep the line endings they were
 # generated with. The repo may be checked out with core.autocrlf=true; without this
 # rule the patch bytes change on checkout, which makes a real drift harder to read.

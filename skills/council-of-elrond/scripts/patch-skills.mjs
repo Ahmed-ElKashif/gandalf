@@ -16,7 +16,6 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PATCH_DIR = path.join(HERE, "..", "patches");
-const MANIFEST = path.join(PATCH_DIR, "manifest.json");
 
 const argv = process.argv.slice(2);
 const hasFlag = (name) => argv.includes(`--${name}`);
@@ -27,6 +26,12 @@ function flagValue(name, fallback = null) {
   const value = argv[i + 1];
   return value && !value.startsWith("--") ? value : fallback;
 }
+
+// The manifest defaults to the one this skill ships. `--manifest` points the
+// engine at another set — a fixture in a test, a vendored set in CI.
+const MANIFEST = flagValue("manifest")
+  ? path.resolve(flagValue("manifest"))
+  : path.join(PATCH_DIR, "manifest.json");
 
 function die(message, code = 2) {
   console.error(`patch-skills: ${message}`);
@@ -48,6 +53,7 @@ if (hasFlag("help") || hasFlag("h") || command === "help") {
 
 options:
   --skills-root <dir>   installed skills directory (default: ~/.agents/skills)
+  --manifest <file>     patch manifest (default: this skill's patches/manifest.json)
   --only <id[,id]>      limit to these patch ids
   --scope <s[,s]>       patch scopes to consider (default: general)
   --json                machine-readable output
@@ -62,6 +68,9 @@ force it — a patch applied to code it was not written for is worse than no pat
 
 if (!fs.existsSync(MANIFEST)) die(`manifest not found at ${MANIFEST}`);
 const manifest = JSON.parse(fs.readFileSync(MANIFEST, "utf8"));
+// Patch files live next to the manifest, so a manifest elsewhere (a fixture, a
+// vendored set) finds its own patches.
+const MANIFEST_DIR = path.dirname(MANIFEST);
 
 const scopes = new Set(String(flagValue("scope", "general")).split(",").map((s) => s.trim()).filter(Boolean));
 const only = flagValue("only")
@@ -130,7 +139,7 @@ function inspect(entry) {
     };
   }
 
-  const patch = path.join(PATCH_DIR, entry.patch);
+  const patch = path.join(MANIFEST_DIR, entry.patch);
   if (!fs.existsSync(patch)) {
     return { state: "broken", detail: `patch file missing: ${entry.patch}` };
   }

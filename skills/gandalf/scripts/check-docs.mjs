@@ -494,6 +494,23 @@ if (!existsSync(manifestPath) || !existsSync(patchReadmePath)) {
     else pass(`patches: every manifest entry has its patch file (${manifest.patches.length})`);
     if (missingRows.length) fail(`patches: not listed in patches/README.md: ${missingRows.join(", ")}`);
     else pass("patches: every manifest entry is listed in the README");
+
+    // A patch whose bytes are wrong never applies, and the failure reads as
+    // "drift" — a lie about upstream. The patch files are LF with no BOM: a CR
+    // inside a context line never matches a target, and a BOM makes git apply
+    // refuse the file outright.
+    const badBytes = [];
+    for (const entry of manifest.patches ?? []) {
+      const file = join(ROOT, "skills/council-of-elrond/patches", entry.patch);
+      if (!existsSync(file)) continue;
+      const bytes = readFileSync(file);
+      if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) badBytes.push(`${entry.id} (BOM)`);
+      for (const byte of bytes) {
+        if (byte === 0x0d) { badBytes.push(`${entry.id} (CR)`); break; }
+      }
+    }
+    if (badBytes.length) fail(`patches: patch files must be LF with no BOM: ${badBytes.join(", ")}`);
+    else pass("patches: every patch file is LF with no BOM");
   }
 }
 
