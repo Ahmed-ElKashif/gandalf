@@ -1,0 +1,22 @@
+diff --git a/scripts/implementers.mjs b/scripts/implementers.mjs
+index ea3b398..bc740bc 100644
+--- a/scripts/implementers.mjs
++++ b/scripts/implementers.mjs
+@@ -139,9 +139,14 @@ export const IMPLEMENTERS = Object.freeze([
+     skill: "opencode-delegate",
+     binary: "opencode",
+     versionArgs: ["--version"],
+-    // Exits 0 with an empty list too; a "●" row is the only auth signal, so a clean run
+-    // without one is the logged-out state, not an ambiguous miss.
+-    authProbe: { args: ["auth", "list"], successPattern: /^●\s/m, missMeansFalse: true },
++    // The "●" marker only exists in the TTY-rendered list: piped (which is how the
++    // probe runs) the CLI prints plain columns with no bullet, so matching the
++    // bullet reported every opencode install as logged out. Ask for JSON instead —
++    // a provider with a non-empty "connections" array means a live credential.
++    // Exits 0 with an empty list too, so a clean run without one is the logged-out
++    // state, not an ambiguous miss.
++    // (LOCAL PATCH — upstream matched a "●" row in the plain-text output.)
++    authProbe: { args: ["auth", "list", "--format", "json"], successPattern: /"connections"\s*:\s*\[\s*\{/, missMeansFalse: true },
+     modelProbe: { args: ["models"], format: "lines" },
+     // No usage probe: the session files under ~/.local/share/opencode/storage stopped
+     // being written when OpenCode moved to opencode.db, and a session count from that

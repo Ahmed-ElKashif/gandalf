@@ -46,6 +46,20 @@
       "why": "result.json reported `auto: opts.auto` — the REQUESTED flag — but --auto is never passed on a plan (read-only) run, because it would auto-approve the plan agent's ask-gated edit/bash permissions and let a `--read-only` review modify the tree. So a plan run reported `auto: true` while running with no --auto at all. The result now carries `auto` as the EFFECTIVE value (`opts.auto && agent !== 'plan'`), plus `effectivePosture` (auto, agent, plan, requestedAuto) and `effectiveArgv` (what opencode was actually given)."
     },
     {
+      "id": "delegate-setup-opencode-auth-probe",
+      "skill": "delegate-setup",
+      "pack": "delegate-skills",
+      "tier": "core",
+      "required": true,
+      "scope": "general",
+      "files": ["scripts/implementers.mjs"],
+      "patch": "delegate-setup-opencode-auth-probe.patch",
+      "upstream": "https://github.com/amElnagdy/delegate-skills",
+      "upstreamCommit": "3aa72d681a79e2a9d09bd9a316353003ae1cb4a7",
+      "upstreamDate": "2026-10-14",
+      "why": "The opencode auth probe matched a \"●\" row in `opencode auth list`, but that bullet only exists in the TTY-rendered list. The probe runs piped, where the CLI prints plain columns with no bullet — so every opencode install was reported as NOT authenticated, whatever the real state. Measured on opencode 2.1.1: the piped output is `OpenCode Console  Personal  stored` and the old pattern never matches. The patch asks for `opencode auth list --format json` and treats a provider with a non-empty `connections` array as a live credential."
+    },
+    {
       "id": "debate-review-snapshot-cleanup",
       "skill": "debate-review",
       "pack": "review-skills",
