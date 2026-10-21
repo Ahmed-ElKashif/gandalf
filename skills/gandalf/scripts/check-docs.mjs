@@ -397,6 +397,32 @@ if (!/snapshot/i.test(operationsText) || !/read-only-violation/.test(operationsT
   pass("operations.md: the read-only snapshot rule is stated");
 }
 
+// ---- 11b. one lane per relay -----------------------------------------------
+// Two opencode relays at once deadlock: the second waits on a server lock the
+// first holds and neither reports anything, so the run stops silently. The
+// dispatcher therefore runs one lane per relay at a time, and different relays
+// still walk together.
+
+const relayLockGuard = [
+  [/const relayLocks = new Map\(\)/, "the per-relay lock table is missing"],
+  [/async function withRelayLock\(relay, fn\)/, "withRelayLock(relay, fn) is not defined"],
+  [/await withRelayLock\(r\.lane\.relay,/, "a lane does not take the lock for its relay"],
+];
+const relayLockProblems = relayLockGuard
+  .filter(([pattern]) => !pattern.test(fellowship))
+  .map(([, label]) => label);
+if (relayLockProblems.length) {
+  for (const problem of relayLockProblems) fail(`fellowship.mjs: ${problem}`);
+} else {
+  pass("fellowship.mjs: one lane per relay at a time");
+}
+
+if (!/one lane per relay at a time/i.test(operationsText)) {
+  fail("operations.md: the one-lane-per-relay rule is not stated");
+} else {
+  pass("operations.md: the one-lane-per-relay rule is stated");
+}
+
 // ---- 12. every registered patch exists and is documented --------------------
 // A patch that is not in the manifest is never applied; a manifest entry whose
 // file is missing breaks arming. Both are silent failures otherwise.

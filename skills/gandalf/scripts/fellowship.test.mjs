@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -15,6 +15,9 @@ const FELLOWSHIP = join(HERE, "fellowship.mjs");
  * violation only when FAKE_RELAY_REPORTS_VIOLATION is set — a relay that does not
  * notice is the case worth testing, because then the dispatcher is the only
  * witness left.
+ *
+ * With FAKE_RELAY_TIMELINE set it appends start/end marks to that file, so a
+ * test can see whether two lanes really ran at the same time.
  */
 const FAKE_RELAY = `
 import fs from "node:fs";
@@ -23,9 +26,18 @@ const args = process.argv.slice(2);
 const get = (flag) => { const i = args.indexOf(flag); return i === -1 ? null : args[i + 1]; };
 const cwd = get("--cd");
 const outDir = get("--out-dir");
+const lane = get("--lane") || "unknown";
 fs.mkdirSync(outDir, { recursive: true });
 const wrote = process.env.FAKE_RELAY_WRITES === "1";
 if (wrote) fs.writeFileSync(path.join(cwd, "written-by-a-read-only-lane.txt"), "oops\\n");
+const timeline = process.env.FAKE_RELAY_TIMELINE;
+if (timeline) {
+  const start = Date.now();
+  fs.appendFileSync(timeline, JSON.stringify({ lane, event: "start", at: start }) + "\\n");
+  const until = start + 900;
+  while (Date.now() < until) { /* hold the slot so an overlap is visible */ }
+  fs.appendFileSync(timeline, JSON.stringify({ lane, event: "end", at: Date.now() }) + "\\n");
+}
 fs.writeFileSync(path.join(outDir, "result.json"), JSON.stringify({
   status: "completed",
   readOnlyViolation: process.env.FAKE_RELAY_REPORTS_VIOLATION === "1" ? true : false,
@@ -261,6 +273,70 @@ test("--no-snapshot runs a read-only lane in the repo, and the relay's verdict i
       true,
       "without the snapshot the write lands in the user's repo — that is why the snapshot is the default",
     );
+  } finally {
+    fx.cleanup();
+  }
+});
+
+/** Read the fake relay's timeline and return one [start, end] interval per lane. */
+function intervals(timelinePath) {
+  const events = readFileSync(timelinePath, "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  const spans = new Map();
+  for (const event of events) {
+    const span = spans.get(event.lane) ?? { start: event.at, end: event.at };
+    if (event.event === "start") span.start = event.at;
+    if (event.event === "end") span.end = event.at;
+    spans.set(event.lane, span);
+  }
+  return [...spans.values()];
+}
+
+test("two lanes on the same relay never run at the same time", () => {
+  const fx = fixture(
+    (brief) => [
+      { lane: "feature", brief, relay: "opencode" },
+      { lane: "ui", brief, relay: "opencode" },
+    ],
+    { cast: { feature: { implementer: "opencode" }, ui: { implementer: "opencode" } } },
+  );
+  try {
+    const timeline = join(fx.root, "timeline.jsonl");
+    const result = dispatch(fx, ["--no-worktree"], {
+      dryRun: false,
+      env: { FAKE_RELAY_TIMELINE: timeline },
+    });
+    assert.equal(result.code, 0, result.stderr);
+    const [a, b] = intervals(timeline);
+    assert.ok(a && b, "both lanes must have run");
+    const overlap = a.start < b.end && b.start < a.end;
+    assert.equal(overlap, false, "two opencode relays at once deadlock silently");
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("lanes on different relays still run together", () => {
+  const fx = fixture(
+    (brief) => [
+      { lane: "feature", brief, relay: "opencode" },
+      { lane: "ui", brief, relay: "agy" },
+    ],
+    { cast: { feature: { implementer: "opencode" }, ui: { implementer: "agy" } } },
+  );
+  try {
+    const timeline = join(fx.root, "timeline.jsonl");
+    const result = dispatch(fx, ["--no-worktree"], {
+      dryRun: false,
+      env: { FAKE_RELAY_TIMELINE: timeline },
+    });
+    assert.equal(result.code, 0, result.stderr);
+    const [a, b] = intervals(timeline);
+    assert.ok(a && b, "both lanes must have run");
+    const overlap = a.start < b.end && b.start < a.end;
+    assert.equal(overlap, true, "different relays are independent and must still walk together");
   } finally {
     fx.cleanup();
   }

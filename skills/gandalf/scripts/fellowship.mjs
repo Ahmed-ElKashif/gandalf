@@ -648,12 +648,33 @@ function runLane(r) {
 
 // Bounded concurrency: free tiers rate-limit per account, so N-at-once has a
 // ceiling that max-concurrency is the term for. Overflow lanes queue.
+//
+// One lane per RELAY at a time, on top of that. Two opencode relays at once
+// deadlock: the second waits on a server lock the first holds, and neither
+// reports anything — the run just stops, silently, with no failure to read.
+// Lanes on different relays are independent and still walk together.
+const relayLocks = new Map();
+async function withRelayLock(relay, fn) {
+  const previous = relayLocks.get(relay) ?? Promise.resolve();
+  let release;
+  const mine = new Promise((resolve) => { release = resolve; });
+  relayLocks.set(relay, mine);
+  await previous;
+  try {
+    return await fn();
+  } finally {
+    release();
+  }
+}
+
 let next = 0;
 async function worker() {
   while (next < runners.length) {
     const r = runners[next++];
-    if (!opts.json) console.log(`  → ${r.lane.lane} started`);
-    const res = await runLane(r);
+    const res = await withRelayLock(r.lane.relay, async () => {
+      if (!opts.json) console.log(`  → ${r.lane.lane} started`);
+      return runLane(r);
+    });
     results.push(res);
     const ok = OK_STATUSES.has(res.status);
     const mark = ok ? "ok" : res.status.toUpperCase();

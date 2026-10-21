@@ -139,7 +139,9 @@ earns it. Nothing here is welded to a specific model.
    Run them together with `fellowship.mjs` — N isolated worktrees, one live log and
    one resumable session per lane (`references/operations.md`). Read-only lanes run
    against a throwaway copy of the tree, so a lane that writes cannot change
-   anything: it fails with `read-only-violation` and the copy is deleted.
+   anything: it fails with `read-only-violation` and the copy is deleted. Lanes
+   sharing a relay walk one at a time — two opencode relays at once deadlock
+   silently — while lanes on different relays run together.
 3. **Review** — read the implementer's report, inspect the diff, re-run the project
    gates yourself.
 4. **Guards** — *"You shall not pass."* Code diff → `clean-code-guard`; tests →

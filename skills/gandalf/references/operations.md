@@ -214,6 +214,11 @@ Key flags:
   free tiers rate-limit per *account*, so the ceiling is not per-process. Four is the
   common simultaneous fleet (`feature`, `ui`, `bugfix`, `devops`). Raise it once your own
   runs are the evidence, not before.
+- **One lane per relay at a time**, whatever `--max` says. Two opencode relays at once
+  deadlock: the second waits on a server lock the first holds, and neither reports
+  anything — the run stops silently, with no failure to read. Lanes on *different*
+  relays are independent and still walk together, so a fleet of one opencode lane and
+  one agy lane is not slowed down.
 - `--dry-run` prints the resolved worktrees, commands, and `tail -f` lines without
   creating directories or writing briefs. Run it first.
 - `--no-worktree` shares one tree for every lane. It prints a warning, because two lanes
