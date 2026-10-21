@@ -137,7 +137,9 @@ earns it. Nothing here is welded to a specific model.
    `fellowship.mjs` injects the role block automatically (global rules + the lane's
    loadout) and records the effective brief in `run.json`. **More than one lane?**
    Run them together with `fellowship.mjs` — N isolated worktrees, one live log and
-   one resumable session per lane (`references/operations.md`).
+   one resumable session per lane (`references/operations.md`). Read-only lanes run
+   against a throwaway copy of the tree, so a lane that writes cannot change
+   anything: it fails with `read-only-violation` and the copy is deleted.
 3. **Review** — read the implementer's report, inspect the diff, re-run the project
    gates yourself.
 4. **Guards** — *"You shall not pass."* Code diff → `clean-code-guard`; tests →
@@ -190,6 +192,11 @@ yourself. The essentials:
   for repos outside `C:\Users\<you>` dispatch with `--dangerously-skip-permissions`
   (full access — treat the run accordingly and review the diff hard). Trust entries
   and scoped allow-rules do **not** flip this in headless mode (measured on 1.4.2).
+- agy's `--sandbox` is **not enforced on Windows** (measured on agy 1.4.4: writes
+  inside and outside the workspace persisted). A read-only lane must run against a
+  copy of the tree — `fellowship.mjs` does that for you, and reports a write as
+  `read-only-violation`. The relay's `result.json` carries `effectivePosture` and
+  `effectiveArgv`, so the flags a run actually used are visible.
 - Relay flags (resume, read-only, timeouts) and `debate-review` exit codes:
   `references/operations.md`.
 

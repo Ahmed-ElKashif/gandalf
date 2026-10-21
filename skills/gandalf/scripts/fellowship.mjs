@@ -58,6 +58,11 @@
  *                        ~/.config/delegate-skills/preambles.md).
  *                        Pass --no-preambles to dispatch the raw brief.
  *   --no-preambles       Disable role-block injection (raw brief only).
+ *   --no-snapshot        Run read-only lanes in the real repo instead of a throwaway
+ *                        copy. The copy is what makes "read-only" mean read-only:
+ *                        --read-only is a request, and on agy/Windows the sandbox
+ *                        confines nothing.
+ *   --keep-snapshots     Do not delete a read-only lane's snapshot copy.
  *   -h, --help           Show this help.
  *
  * Exit codes: 0 = every lane succeeded; 1 = at least one lane failed; 2 = bad plan.
@@ -74,6 +79,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { join, resolve, basename, dirname, relative } from "node:path";
 import { tmpdir, homedir } from "node:os";
 import { resolvePreamblesPath, composeEffectiveBrief, writeEffectiveBrief } from "./preambles.mjs";
+import { createSnapshot, treeChanged } from "./snapshot.mjs";
 
 const SKILLS_DIR = toPathEarly(process.env.GANDALF_SKILLS_DIR || join(homedir(), ".agents", "skills"));
 
@@ -149,7 +155,7 @@ function parseArgs(argv) {
     plan: null, lanes: null, brief: null, cd: process.cwd(),
     max: 4, worktree: true, keepWorktrees: false, dryRun: false,
     json: false, outDir: null, preambles: null, noPreambles: false,
-    allowRelayMismatch: false,
+    allowRelayMismatch: false, noSnapshot: false, keepSnapshots: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -172,6 +178,8 @@ function parseArgs(argv) {
       case "--preambles": opts.preambles = toPath(next()); break;
       case "--no-preambles": opts.noPreambles = true; break;
       case "--allow-relay-mismatch": opts.allowRelayMismatch = true; break;
+      case "--no-snapshot": opts.noSnapshot = true; break;
+      case "--keep-snapshots": opts.keepSnapshots = true; break;
       case "-h": case "--help": usage(0); break;
       default:
         console.error(`fellowship: unknown argument ${a}`);
@@ -415,6 +423,8 @@ if (preamblesPath) {
 for (const lane of plan.lanes) {
   let cwd = repoRoot;
   let worktreeDir = null;
+  let snapshot = null;
+  let snapshotDir = null;
   if (lane.worktree) {
     if (opts.dryRun) {
       worktreeDir = join(worktreeRoot, `${stamp}-${lane.lane}`);
@@ -422,6 +432,25 @@ for (const lane of plan.lanes) {
     } else {
       try { worktreeDir = makeWorktree(lane.lane); cwd = worktreeDir; }
       catch (e) { console.error(`fellowship: ${e.message}`); removeWorktree(worktreeDir); process.exit(2); }
+    }
+  } else if (lane.readOnly && !opts.noSnapshot) {
+    // A read-only lane does not get the repo: it gets a copy of it. --read-only is
+    // a request, and on agy/Windows the sandbox confines nothing — a lane's writes
+    // persisted inside the workspace and outside it. The copy holds the same
+    // history and the same uncommitted diff, so a judge sees exactly what the
+    // user sees, and anything it writes lands in the copy.
+    if (opts.dryRun) {
+      snapshotDir = join(tmpdir(), `gandalf-snapshot-${lane.lane}`);
+      cwd = snapshotDir;
+    } else {
+      try {
+        snapshot = createSnapshot(repoRoot, { keep: opts.keepSnapshots });
+        snapshotDir = snapshot.dir;
+        cwd = snapshot.dir;
+      } catch (e) {
+        console.error(`fellowship: cannot snapshot the repo for lane ${lane.lane} — ${e.message}`);
+        process.exit(2);
+      }
     }
   }
   const laneOutDir = join(outDir, lane.lane);
@@ -458,7 +487,7 @@ for (const lane of plan.lanes) {
   argv.push(...relayExtraFlags(lane.relay, lane.readOnly));
 
   runners.push({
-    lane, cwd, worktreeDir, outDir: laneOutDir, logPath, argv,
+    lane, cwd, worktreeDir, snapshot, snapshotDir, outDir: laneOutDir, logPath, argv,
     brief: lane.brief,
     effectiveBrief,
     preamble: composed?.used ? composed.outputPath : null,
@@ -474,6 +503,7 @@ if (opts.dryRun) {
     relayFrom: r.lane.relayFrom,
     readOnly: r.lane.readOnly,
     worktree: r.worktreeDir,
+    snapshot: r.snapshotDir,
     cwd: r.cwd,
     log: r.logPath,
     tail: `tail -f "${r.logPath}"`,
@@ -522,6 +552,7 @@ const manifest = {
     variant: r.lane.variant,
     readOnly: r.lane.readOnly,
     worktree: r.worktreeDir,
+    snapshot: r.snapshotDir,
     cwd: r.cwd,
     brief: r.brief,
     effectiveBrief: r.effectiveBrief,
@@ -578,6 +609,23 @@ function runLane(r) {
         // failure, which then deletes a worktree that holds real work.
         status = result.status || (code === 0 ? "completed" : "failed");
       }
+
+      // Did the lane write? Two witnesses, and either one is enough:
+      //   - the relay's own verdict, for the relays that report one;
+      //   - the snapshot's git status against its baseline, which works for
+      //     every relay, because a read-only lane ran against a copy.
+      let readOnlyViolation = result?.readOnlyViolation ?? null;
+      let violationDetail = null;
+      if (r.snapshot && treeChanged(r.snapshot.dir, r.snapshot.baseline)) {
+        readOnlyViolation = true;
+        violationDetail = "the snapshot copy changed during the run";
+      } else if (readOnlyViolation === true) {
+        violationDetail = "the relay reported a read-only violation";
+      }
+      // A lane that wrote while it was told not to is not a successful lane,
+      // whatever the model said about its work.
+      if (readOnlyViolation === true) status = "read-only-violation";
+
       done({
         lane: r.lane.lane,
         status,
@@ -586,7 +634,10 @@ function runLane(r) {
         seconds,
         sessionId: result?.sessionId || null,
         touchedFiles: result?.touchedFiles ?? null,
+        readOnlyViolation,
+        violationDetail,
         worktreeDir: r.worktreeDir,
+        snapshotDir: r.snapshotDir,
         log: r.logPath,
         resultPath: existsSync(resultPath) ? resultPath : null,
         error: result?.error || (result ? null : "relay wrote no result.json"),
@@ -606,11 +657,30 @@ async function worker() {
     results.push(res);
     const ok = OK_STATUSES.has(res.status);
     const mark = ok ? "ok" : res.status.toUpperCase();
-    if (!opts.json) console.log(`  ${ok ? "✓" : "✗"} ${res.lane} ${mark} in ${res.seconds}s${res.sessionId ? ` (session ${res.sessionId})` : ""}`);
+    if (!opts.json) {
+      console.log(`  ${ok ? "✓" : "✗"} ${res.lane} ${mark} in ${res.seconds}s${res.sessionId ? ` (session ${res.sessionId})` : ""}`);
+      // Say why a lane failed. "read-only-violation" without a reason is a
+      // shrug: the reader must know the lane wrote, or the relay did.
+      if (!ok && res.violationDetail) console.log(`      ↳ ${res.violationDetail}`);
+      if (!ok && res.error) console.log(`      ↳ ${res.error}`);
+    }
   }
 }
 
 await Promise.all(Array.from({ length: Math.min(opts.max, runners.length) }, () => worker()));
+
+// ---- throw the copies away -------------------------------------------------
+// A read-only lane's snapshot is a scratch copy: it exists so a judge cannot
+// touch the user's tree, and it is worthless once the lane is done. Keeping it
+// costs disk and, worse, invites someone to treat it as the work.
+
+for (const r of runners) {
+  if (!r.snapshot) continue;
+  const outcome = r.snapshot.cleanup();
+  if (outcome.removed) continue;
+  if (outcome.kept) console.error(`fellowship: kept the snapshot copy of ${r.lane.lane} at ${outcome.kept}`);
+  else console.error(`fellowship: could not delete the snapshot copy of ${r.lane.lane} at ${r.snapshot.dir} — ${outcome.error?.message || "unknown error"}`);
+}
 
 // ---- merge order -----------------------------------------------------------
 
@@ -649,7 +719,7 @@ function touchedList(r) {
     const entry = String(raw).replace(/^(.{2})\s+/, "").trim();
     if (!entry) continue;
     if (entry.endsWith("/")) {
-      const dir = r.worktreeDir || plan.repo;
+      const dir = r.worktreeDir || r.snapshotDir || plan.repo;
       try {
         for (const f of walkFiles(dir, entry)) files.push(f);
       } catch { /* unreadable dir: fall back to the entry itself */ files.push(entry); }

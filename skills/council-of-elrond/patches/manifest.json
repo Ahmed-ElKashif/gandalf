@@ -18,6 +18,20 @@
       "why": "`spawn(\"agy\")` resolves only through PATH, but the Antigravity installer writes the User PATH — which a process started before the install, or one inheriting only the Machine PATH, never sees. The relay then reports `agy_unavailable (exit 127)` although the binary is present and working. PATH is still tried first; the fallback checks the documented install locations and is consulted only when a plain spawn would fail."
     },
     {
+      "id": "agy-relay-effective-posture",
+      "skill": "agy-delegate",
+      "pack": "delegate-skills",
+      "tier": "core",
+      "required": true,
+      "scope": "general",
+      "files": ["scripts/relay.mjs"],
+      "patch": "agy-relay-effective-posture.patch",
+      "upstream": "https://github.com/amElnagdy/delegate-skills",
+      "upstreamCommit": "3aa72d681a79e2a9d09bd9a316353003ae1cb4a7",
+      "upstreamDate": "2026-10-14",
+      "why": "result.json reported the flags the caller ASKED for, not the ones agy ran with. A read-only run passes `--sandbox --dangerously-skip-permissions` itself, so every read-only lane reported `sandbox: false, dangerouslySkipPermissions: false` while agy ran with both — a reader could not tell what the run was allowed to do. The header's sandbox guarantee was also stated as fact although it was measured on macOS only: on agy 1.4.4 / Windows `--sandbox` confines nothing, and writes persisted inside and outside the workspace. The result now carries `effectivePosture` (the flags, the platform, and whether they were enforced) and `effectiveArgv` (what agy was actually given); the header names the platform each claim was measured on."
+    },
+    {
       "id": "debate-review-snapshot-cleanup",
       "skill": "debate-review",
       "pack": "review-skills",

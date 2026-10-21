@@ -1,0 +1,108 @@
+diff --git a/scripts/relay.mjs b/scripts/relay.mjs
+index 100d8d9..b0e625c 100644
+--- a/scripts/relay.mjs
++++ b/scripts/relay.mjs
+@@ -32,18 +32,29 @@
+  * the job: headless `--print` has no way to answer a permission prompt, so agy
+  * auto-denies the first tool that needs one and the run returns nothing at all
+  * ("a tool required the \"command\" permission that headless mode cannot prompt
+- * for"). Verified on agy 1.1.28, macOS: under --sandbox, writes to the working
+- * tree are overlaid and discarded, and every path outside the workspace fails
+- * with EPERM for read *and* write.
++ * for").
+  *
+- * Two consequences worth knowing before choosing this lane:
+- *   - The sandbox confines READS to the workspace too. A brief that cites an
+- *     absolute path outside --cd cannot be followed; keep briefs self-contained
+- *     or add the path with agy's own --add-dir.
++ * THE SANDBOX IS NOT ENFORCED ON EVERY PLATFORM. Verified on agy 1.1.28,
++ * macOS: under --sandbox, writes to the working tree are overlaid and
++ * discarded, and every path outside the workspace fails with EPERM for read
++ * *and* write. Verified on agy 1.4.4, Windows: --sandbox confines NOTHING —
++ * writes inside the workspace persisted, and writes outside it persisted too.
++ * On that platform `--read-only` is a REQUEST, not a guarantee: run the lane
++ * against a COPY of the tree. `effectivePosture` in result.json names the
++ * platform the run happened on and whether the flags were enforced.
++ *
++ * Three consequences worth knowing before choosing this lane:
++ *   - The sandbox confines READS to the workspace too — where it confines
++ *     anything at all. A brief that cites an absolute path outside --cd cannot
++ *     be followed; keep briefs self-contained or add the path with agy's own
++ *     --add-dir.
+  *   - Inside the workspace a write appears to succeed to the agent — it reads
+  *     its own overlay back — and is then discarded. The tree is safe, but a
+  *     confused run may report edits it did not make. Trust `touchedFiles`, not
+  *     the agent's account of itself.
++ *   - Where the sandbox is not enforced (Windows) that discard does not
++ *     happen: the write stays. The relay reports `readOnlyViolation` after the
++ *     fact; it cannot undo the write.
+  *
+  * Usage:
+  *   node relay.mjs --brief <file> [options]
+@@ -434,6 +445,43 @@ function readOnlyVerdict(opts, beforeState, afterState) {
+   return beforeState !== afterState;
+ }
+ 
++/**
++ * The posture agy actually ran under.
++ *
++ * The result used to report the REQUESTED flags: `opts.sandbox` and
++ * `opts.dangerouslySkipPermissions`. A read-only run adds
++ * `--sandbox --dangerously-skip-permissions` on its own (see buildArgv), so for
++ * every read-only lane the result said "sandbox: false, auto-approve: false"
++ * while agy ran with both. A reader — a landing report, a reviewer, another
++ * relay — could not tell what the run was allowed to do.
++ *
++ * LOCAL PATCH (not upstream). Delete this function and the two result fields to
++ * restore stock behaviour.
++ */
++function effectivePosture(opts) {
++  const sandbox = Boolean(opts.readOnly || opts.sandbox);
++  const dangerouslySkipPermissions = Boolean(opts.readOnly || opts.dangerouslySkipPermissions);
++  // Measured: agy 1.4.4 on Windows does not enforce --sandbox; the macOS build
++  // does. So the flags are worth reporting next to the platform they ran on.
++  const enforced = sandbox && process.platform !== "win32";
++  return {
++    sandbox,
++    dangerouslySkipPermissions,
++    readOnly: Boolean(opts.readOnly),
++    flags: [
++      ...(sandbox ? ["--sandbox"] : []),
++      ...(dangerouslySkipPermissions ? ["--dangerously-skip-permissions"] : []),
++    ],
++    platform: process.platform,
++    enforced,
++    caveat: enforced
++      ? null
++      : sandbox
++        ? "--sandbox is not enforced on Windows (measured on agy 1.4.4): a read-only run is a request, not a guarantee"
++        : null,
++  };
++}
++
+ function timestamp() {
+   return new Date().toISOString().replace(/[:.]/g, "-");
+ }
+@@ -494,6 +542,10 @@ function buildArgv(opts, brief, run) {
+   // parser intercepts a value that is exactly a bare flag (a brief consisting only of
+   // "--help" or "-h" prints usage instead of running). The = form always binds the value.
+   argv.push(`--print=${brief}`);
++  // Record what agy is actually given, so result.json carries the ground truth
++  // and not only a derivation of it. The brief is elided: it can be 120KB, and
++  // result.json is read by people.
++  run.argv = argv.map((arg) => (arg.startsWith("--print=") ? "--print=<brief>" : arg));
+   return argv;
+ }
+ 
+@@ -577,6 +629,11 @@ function makeResultWriter(opts, version, run) {
+       readOnly: opts.readOnly,
+       readOnlyViolation: null,
+       dangerouslySkipPermissions: opts.dangerouslySkipPermissions,
++      // What agy was ACTUALLY given, not what was asked for: a read-only run
++      // passes --sandbox --dangerously-skip-permissions on its own, so the
++      // requested flags above understate the run. See effectivePosture.
++      effectivePosture: effectivePosture(opts),
++      effectiveArgv: run.argv || null,
+       resumed: Boolean(opts.resumeLast || opts.conversation),
+       agyVersion: version,
+       projectId: ids.projectId,

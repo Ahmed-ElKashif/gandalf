@@ -12,6 +12,7 @@ diff that makes an installed copy correct. If upstream takes the fix, delete the
 | Id | Target | Tier | Fix |
 |---|---|---|---|
 | `agy-delegate-resolve-binary` | `delegate-skills` → `agy-delegate` | core | resolve `agy` outside the current process's PATH (the installer only writes the User PATH) |
+| `agy-relay-effective-posture` | `delegate-skills` → `agy-delegate` | core | report the flags agy actually ran with, and stop claiming a sandbox that is not enforced on Windows |
 | `debate-review-snapshot-cleanup` | `review-skills` → `debate-review` | core | retry a Windows `EPERM` on snapshot cleanup instead of masking the real error |
 | `ui-review-loop-version-and-video` | `ui-review-loop` | optional | separate the version floor from the verified contract; skip a recorder that cannot finalize; resolve the native CLI on Windows |
 

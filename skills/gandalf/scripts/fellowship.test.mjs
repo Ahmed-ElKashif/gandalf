@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -10,9 +10,34 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const FELLOWSHIP = join(HERE, "fellowship.mjs");
 
 /**
- * A throwaway git repo, a brief, a fleet config, and a plan — enough for one
- * `--dry-run` dispatch. The dry run resolves the whole command line without
- * touching a worktree, so the assertions are about the command that WOULD run.
+ * A relay that behaves like a real one and can be told to misbehave. It writes
+ * into its working directory when FAKE_RELAY_WRITES is set, and it reports the
+ * violation only when FAKE_RELAY_REPORTS_VIOLATION is set — a relay that does not
+ * notice is the case worth testing, because then the dispatcher is the only
+ * witness left.
+ */
+const FAKE_RELAY = `
+import fs from "node:fs";
+import path from "node:path";
+const args = process.argv.slice(2);
+const get = (flag) => { const i = args.indexOf(flag); return i === -1 ? null : args[i + 1]; };
+const cwd = get("--cd");
+const outDir = get("--out-dir");
+fs.mkdirSync(outDir, { recursive: true });
+const wrote = process.env.FAKE_RELAY_WRITES === "1";
+if (wrote) fs.writeFileSync(path.join(cwd, "written-by-a-read-only-lane.txt"), "oops\\n");
+fs.writeFileSync(path.join(outDir, "result.json"), JSON.stringify({
+  status: "completed",
+  readOnlyViolation: process.env.FAKE_RELAY_REPORTS_VIOLATION === "1" ? true : false,
+  workdir: cwd,
+  touchedFiles: wrote ? ["written-by-a-read-only-lane.txt"] : [],
+}, null, 2));
+`;
+
+/**
+ * A throwaway git repo, a brief, a fleet config, a fake skills dir, and a plan —
+ * enough for one dispatch. The dry run resolves the whole command line without
+ * touching a worktree; the real run exercises the snapshot.
  */
 function fixture(lanes, { cast } = {}) {
   const root = mkdtempSync(join(tmpdir(), "gandalf-fellowship-"));
@@ -30,18 +55,32 @@ function fixture(lanes, { cast } = {}) {
   const configPath = join(root, "config.json");
   writeFileSync(configPath, JSON.stringify({ version: "delegate-fleet.v1", lanes: cast ?? {} }, null, 2));
 
+  const skillsDir = join(root, "skills");
+  for (const relay of ["agy-delegate", "opencode-delegate"]) {
+    mkdirSync(join(skillsDir, relay, "scripts"), { recursive: true });
+    writeFileSync(join(skillsDir, relay, "scripts", "relay.mjs"), FAKE_RELAY);
+  }
+
   const planPath = join(root, "plan.json");
   writeFileSync(planPath, JSON.stringify({ repo, lanes: lanes(brief) }, null, 2));
 
-  return { root, repo, planPath, configPath, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+  return {
+    root, repo, planPath, configPath, skillsDir,
+    cleanup: () => rmSync(root, { recursive: true, force: true }),
+  };
 }
 
-function dispatch(fx, extra = []) {
+function dispatch(fx, extra = [], { dryRun = true, env = {} } = {}) {
   const r = spawnSync(process.execPath, [
-    FELLOWSHIP, "--plan", fx.planPath, "--dry-run", "--json", "--no-preambles", ...extra,
+    FELLOWSHIP, "--plan", fx.planPath, ...(dryRun ? ["--dry-run"] : []), "--json", "--no-preambles", ...extra,
   ], {
     encoding: "utf8",
-    env: { ...process.env, GANDALF_CONFIG: fx.configPath },
+    env: {
+      ...process.env,
+      GANDALF_CONFIG: fx.configPath,
+      GANDALF_SKILLS_DIR: fx.skillsDir,
+      ...env,
+    },
   });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr };
 }
@@ -117,6 +156,22 @@ test("the relay comes from the cast when the plan does not name one", () => {
   }
 });
 
+test("the dry run says a read-only lane will run against a copy", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "review-main", brief, relay: "agy" }],
+    { cast: { "review-main": { implementer: "agy" } } },
+  );
+  try {
+    const result = dispatch(fx);
+    assert.equal(result.code, 0, result.stderr);
+    const lane = JSON.parse(result.stdout).lanes.find((l) => l.lane === "review-main");
+    assert.match(lane.snapshot, /gandalf-snapshot-review-main/, "the plan must show the copy the lane will get");
+    assert.notEqual(lane.cwd, fx.repo, "a read-only lane must not be pointed at the repo");
+  } finally {
+    fx.cleanup();
+  }
+});
+
 test("a plan that contradicts the cast is refused", () => {
   const fx = fixture(
     (brief) => [{ lane: "plan-debate", brief, relay: "opencode" }],
@@ -143,6 +198,69 @@ test("--allow-relay-mismatch downgrades the contradiction to a warning", () => {
     assert.match(result.stderr, /WARNING — the plan contradicts the cast/);
     const lane = JSON.parse(result.stdout).lanes.find((l) => l.lane === "plan-debate");
     assert.equal(lane.relay, "opencode");
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("a read-only lane runs against a snapshot copy, not the repo", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "review-main", brief, relay: "agy" }],
+    { cast: { "review-main": { implementer: "agy" } } },
+  );
+  try {
+    const result = dispatch(fx, [], { dryRun: false });
+    assert.equal(result.code, 0, result.stderr);
+    const lane = JSON.parse(result.stdout).results.find((r) => r.lane === "review-main");
+    assert.equal(lane.status, "completed");
+    assert.ok(lane.snapshotDir, "a read-only lane must run against a snapshot");
+    assert.notEqual(lane.snapshotDir, fx.repo, "the lane must not run against the user's repo");
+    assert.equal(existsSync(lane.snapshotDir), false, "the snapshot must be deleted when the lane ends");
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("a read-only lane that writes fails the lane and leaves the repo untouched", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "review-main", brief, relay: "agy" }],
+    { cast: { "review-main": { implementer: "agy" } } },
+  );
+  try {
+    const result = dispatch(fx, [], { dryRun: false, env: { FAKE_RELAY_WRITES: "1" } });
+    assert.equal(result.code, 1, "a lane that wrote is not a successful lane");
+    const lane = JSON.parse(result.stdout).results.find((r) => r.lane === "review-main");
+    assert.equal(lane.status, "read-only-violation");
+    assert.equal(lane.readOnlyViolation, true);
+    assert.match(lane.violationDetail, /snapshot/);
+    assert.equal(
+      existsSync(join(fx.repo, "written-by-a-read-only-lane.txt")),
+      false,
+      "the write must not reach the user's repo",
+    );
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("--no-snapshot runs a read-only lane in the repo, and the relay's verdict is the only witness", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "review-main", brief, relay: "agy" }],
+    { cast: { "review-main": { implementer: "agy" } } },
+  );
+  try {
+    const result = dispatch(fx, ["--no-snapshot"], {
+      dryRun: false,
+      env: { FAKE_RELAY_WRITES: "1", FAKE_RELAY_REPORTS_VIOLATION: "1" },
+    });
+    const lane = JSON.parse(result.stdout).results.find((r) => r.lane === "review-main");
+    assert.equal(lane.status, "read-only-violation");
+    assert.equal(lane.violationDetail, "the relay reported a read-only violation");
+    assert.equal(
+      existsSync(join(fx.repo, "written-by-a-read-only-lane.txt")),
+      true,
+      "without the snapshot the write lands in the user's repo — that is why the snapshot is the default",
+    );
   } finally {
     fx.cleanup();
   }

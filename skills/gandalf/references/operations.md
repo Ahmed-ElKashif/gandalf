@@ -93,9 +93,14 @@ Key flags:
   effort** —
   `claude-opus-4-6-thinking`, `gemini-3.8-flash-high|medium|low`. `--effort` errors
   on thinking labels; swap the label instead.
-- `--read-only` = `--sandbox --dangerously-skip-permissions`: the run is confined to
-  the workspace and mutations are discarded — trust `touchedFiles`, not the
-  transcript.
+- `--read-only` = `--sandbox --dangerously-skip-permissions`. On agy 1.1.28 / macOS
+  the sandbox confines the run: writes are overlaid and discarded, and paths
+  outside the workspace fail with EPERM. **On agy 1.4.4 / Windows the sandbox is
+  not enforced** — writes inside and outside the workspace persisted. So on
+  Windows a read-only run is a *request*, not a guarantee: run it against a copy
+  of the tree. `result.json` now carries `effectivePosture` (the flags agy
+  actually ran with, the platform, and whether they were enforced) and
+  `effectiveArgv` (the exact argv). Trust `touchedFiles`, not the transcript.
 - Fresh runs are workspace-bound (`--add-dir <cd>` + `--new-project`); resume with
   `--session` / `--resume-last`.
 - `--print-timeout` (default 30m) bounds a single model turn; relay `--timeout`
@@ -213,6 +218,9 @@ Key flags:
   creating directories or writing briefs. Run it first.
 - `--no-worktree` shares one tree for every lane. It prints a warning, because two lanes
   touching one file corrupt each other and serial dispatch is what hides that today.
+- `--no-snapshot` runs read-only lanes in the repo instead of a throwaway copy. The
+  relay's own verdict is then the only witness of a write (see "A read-only lane stays
+  read-only"). `--keep-snapshots` keeps the copies for inspection.
 - `--keep-worktrees` is the default for **successful** lanes — their worktree holds the
   diff until you merge it. A worktree is removed only when it is provably clean.
 
@@ -237,6 +245,24 @@ relay rejects `--read-only` together with that flag as mutually exclusive, and
 writing agy lane still needs the flag: agy auto-denies writes outside the trusted
 workspace, so the lane would stall on a permission prompt nobody can answer.
 
+A read-only lane also never runs against your working tree. It runs against a
+**snapshot** — a throwaway copy of the repo, carrying the same history and the same
+uncommitted changes — and the copy is deleted when the lane ends. The lane can read
+the tree as it is, and it cannot write to it even if it tries: a write inside the
+snapshot is detected afterwards and the lane fails with
+`status: "read-only-violation"`.
+
+This matters because `--read-only` is a request, not a guarantee. The agy sandbox is
+not enforced on Windows (measured on agy 1.4.4 — writes persisted inside and outside
+the workspace), and a relay that does not detect its own violation would report
+success while the tree changed.
+
+- `--no-snapshot` runs read-only lanes in the repo itself. The only witness left is
+  the relay's own `readOnlyViolation` verdict, so a write that the relay misses
+  lands in your tree. Use it only when you trust the relay.
+- `--keep-snapshots` keeps the copies on disk for inspection; by default they are
+  deleted after the run.
+
 ### What isolation buys, and why it is the default
 
 Measured on a real five-lane run: the lanes touched five *disjoint* file sets — and that
@@ -244,8 +270,10 @@ was only true because they ran **one at a time**, by hand. Parallel removes that
 of scheduling. Every writing lane therefore gets its own `git worktree` forked from
 `base`, and the orchestrator merges back in review order.
 
-Read-only lanes (`plan-debate`, `review-main`, `review-debate`, `security-review`) share
-the repo: they write nothing, so a checkout per run would buy nothing.
+Read-only lanes (`plan-debate`, `review-main`, `review-debate`, `security-review`) get a
+throwaway **snapshot** of the tree rather than a worktree: they must see the repo as it
+is — including work in progress — but must not be able to change it. The snapshot is
+deleted when the lane ends.
 
 Worktrees live beside the repo (`.gandalf-worktrees-<repo>/`), never inside it, so one
 lane's checkout never appears in another lane's `git status`.
@@ -273,11 +301,16 @@ non-`completed` status means a model failure: no `result.json` means a bad invoc
 A lane name must be a real wire name **and** cast in your fleet config — the script
 rejects anything else rather than let the relay silently fall back.
 
+`read-only-violation` is a containment report, not a model failure: the lane wrote to
+its snapshot, so it failed even though the model may have answered perfectly. Your
+tree was never at risk — the copy was thrown away.
+
 ### The run manifest
 
 `run.json` in the run directory records the run id, repo, base, preambles source,
-and every lane's relay/model/worktree/brief/effective brief. The landing report
-reads it; do not reconstruct the run from memory.
+and every lane's relay/model/worktree/brief/effective brief — and, for a read-only
+lane, the snapshot directory it ran against. The landing report reads it; do not
+reconstruct the run from memory.
 
 ## Reviewer health pulse
 

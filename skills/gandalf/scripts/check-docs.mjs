@@ -368,6 +368,67 @@ if (!/the cast binds it to/.test(operationsText)) {
   pass("operations.md: the relay-from-cast rule is stated");
 }
 
+// ---- 11. a read-only lane cannot write ------------------------------------
+// `--read-only` is a request, not a guarantee: agy's sandbox is not enforced on
+// Windows, and a relay that misses its own violation reports success over a
+// changed tree. A read-only lane therefore runs against a throwaway copy, and a
+// write inside that copy fails the lane.
+
+const snapshotGuard = [
+  [/import \{ createSnapshot, treeChanged \} from "\.\/snapshot\.mjs"/, "the snapshot module is not imported"],
+  [/lane\.readOnly && !opts\.noSnapshot/, "a read-only lane does not get a snapshot"],
+  [/treeChanged\(r\.snapshot\.dir, r\.snapshot\.baseline\)/, "a write inside the snapshot is not detected"],
+  [/status = "read-only-violation"/, "a detected write does not fail the lane"],
+  [/case "--no-snapshot"/, "the --no-snapshot escape hatch is missing"],
+  [/case "--keep-snapshots"/, "the --keep-snapshots escape hatch is missing"],
+];
+const snapshotProblems = snapshotGuard
+  .filter(([pattern]) => !pattern.test(fellowship))
+  .map(([, label]) => label);
+if (snapshotProblems.length) {
+  for (const problem of snapshotProblems) fail(`fellowship.mjs: ${problem}`);
+} else {
+  pass("fellowship.mjs: a read-only lane runs against a snapshot, and a write fails the lane");
+}
+
+if (!/snapshot/i.test(operationsText) || !/read-only-violation/.test(operationsText)) {
+  fail("operations.md: the read-only snapshot rule is not stated");
+} else {
+  pass("operations.md: the read-only snapshot rule is stated");
+}
+
+// ---- 12. every registered patch exists and is documented --------------------
+// A patch that is not in the manifest is never applied; a manifest entry whose
+// file is missing breaks arming. Both are silent failures otherwise.
+
+const manifestPath = join(ROOT, "skills/council-of-elrond/patches/manifest.json");
+const patchReadmePath = join(ROOT, "skills/council-of-elrond/patches/README.md");
+if (!existsSync(manifestPath) || !existsSync(patchReadmePath)) {
+  fail("patches: manifest.json or README.md is missing");
+} else {
+  let manifest = null;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  } catch (error) {
+    fail(`patches/manifest.json is not valid JSON: ${error.message}`);
+  }
+  if (manifest) {
+    const patchReadme = readFileSync(patchReadmePath, "utf8");
+    const missingFiles = [];
+    const missingRows = [];
+    for (const entry of manifest.patches ?? []) {
+      if (!existsSync(join(ROOT, "skills/council-of-elrond/patches", entry.patch))) {
+        missingFiles.push(`${entry.id} (${entry.patch})`);
+      }
+      if (!patchReadme.includes(`\`${entry.id}\``)) missingRows.push(entry.id);
+    }
+    if (missingFiles.length) fail(`patches: patch files missing: ${missingFiles.join(", ")}`);
+    else pass(`patches: every manifest entry has its patch file (${manifest.patches.length})`);
+    if (missingRows.length) fail(`patches: not listed in patches/README.md: ${missingRows.join(", ")}`);
+    else pass("patches: every manifest entry is listed in the README");
+  }
+}
+
 // ---- report ---------------------------------------------------------------
 
 for (const message of passes) console.log(`✓ ${message}`);
