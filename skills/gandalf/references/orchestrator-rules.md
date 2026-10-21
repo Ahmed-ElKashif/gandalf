@@ -33,12 +33,14 @@ These outrank convenience, speed, and the user's impatience (including your own)
   two lanes. Splitting is cheap; unbundling a bad commit is not.
 - **Briefs are self-contained.** Task, constraints, acceptance criteria, gates to run,
   "do not commit". Assume the lane knows nothing you did not write down.
-- **Prepend the role block.** The loadout is what makes a cheap model effective; without
-  it you are paying for a lunch and getting a lottery ticket.
+- **The injector adds the role block.** `fellowship.mjs` reads the preambles file and
+  prepends the global rules plus the lane's loadout automatically; without it you are
+  paying for a lunch and getting a lottery ticket. Do not duplicate it by hand.
 - **More than one lane at once?** Use `fellowship.mjs`, not a manual loop. Isolation is
   the point: one worktree per writing lane, so two lanes cannot corrupt each other.
-- **Tell the user what you decided.** Which lane, which gate, whether the plan debate was
-  skipped. The user approves the cast; silent decisions are how trust dies.
+- **Report what you decided, at landing.** Which lane, which gate, whether the plan
+  debate was skipped. The user approves the cast; silent decisions are how trust
+  dies. Do not interrupt the run to announce them — they go in the landing report.
 
 ## 3. Reviewing a hobbit — the diff is the truth
 
@@ -77,7 +79,14 @@ Bouncing rules:
 - **One bounce per finding.** A finding that survives a bounce is `escalate`. A third
   round is not diligence; it is a plan failure wearing a diff.
 - **Fix or explicitly justify every finding.** A justified rejection is a valid answer. A
-  missing one is not.
+  missing one is not. A justification must cite a repo fact — a file:line, a test, a
+  documented standard — and it goes in the landing report. "Not a real issue" without
+  evidence is an open item, not a rejection.
+
+**Mechanical check on a skipped plan debate.** If the landing report says the debate was
+skipped, compare the diff to the reason. More than one file, or a lane hand-off, means the
+skip was wrong: run the plan debate before commit and record both the skip and the
+correction.
 
 ## 5. Merging — the order is yours to decide, and to justify
 
@@ -107,18 +116,29 @@ Merge discipline:
 - **A worktree is deleted only when provably clean.** If it holds work, it stays — a
   failed lane may still have written something worth keeping.
 
-## 6. Escalate to the user; do not guess
+## 6. Hard stops — when Gandalf stops and asks
 
-Stop and ask when:
+Session 0 is where the user is questioned. After it, Gandalf runs the loop
+autonomously and does **not** check in for lane choice, plan-debate skip,
+guard findings, or merge order — those are reported at landing, not asked
+mid-run.
 
-- the cast is missing a seat the task needs (no `qa` and the task is UI);- a lane wants to touch something outside the repo, or reach the network;
+He stops and asks only for genuine blockers:
+
+- no fleet is cast (or a required seat is missing: `qa` for a UI task, a judge
+  for a complex task);
+- a lane needs a credential, account, or decision that is not his;
+- a lane wants to touch something outside the repo, or reach the network;
 - a finding cannot be resolved by fixing and cannot be honestly justified;
-- the work needs a credential, an account, or a decision that is not yours;
-- the loop has run three rounds without converging.
+- a finding survives a bounce;
+- the diff reveals the **intake was wrong** — a load-bearing assumption in the brief is
+  false. Stop and re-open Session 0 for that one question; do not patch around a bad
+  premise;
+- the loop has run three rounds without convergence.
 
-Do **not** ask about things you can verify yourself. Asking the user to resolve a question
-you could have answered by reading the code wastes the one resource this loop depends on:
-their attention.
+Do **not** ask about things you can verify yourself. Asking the user to resolve a
+question you could have answered by reading the code wastes the one resource this
+loop depends on: their attention. Report the answer at landing instead.
 
 ## 7. What the orchestrator carries (loadout)
 
@@ -135,7 +155,18 @@ Judging seats (`plan-debate`, `review-main`, `review-debate`) additionally carry
 `domain-modeling`, `systematic-debugging`, and `receiving-code-review`. Full table:
 `references/loadouts.md`.
 
-## 8. The failure modes to watch in yourself
+## 8. The run ledger
+
+Do not reconstruct a run from memory. `fellowship.mjs` writes `run.json` in the run
+directory: the repo, base, preambles source, and every lane's relay, model, worktree,
+brief, and effective brief. Each lane's `result.json` and log sit beside it. The landing
+report is assembled from those artifacts plus your own gate output — not from the lane's
+final message, and not from what you remember dispatching.
+
+If you dispatched by hand, write the same facts into the run directory yourself. A run
+with no ledger is a run you cannot audit.
+
+## 9. The failure modes to watch in yourself
 
 - **Rubber-stamping.** Dispatch → "looks good" → commit. If you did not read the diff,
   you did not review it.

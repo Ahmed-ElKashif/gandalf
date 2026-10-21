@@ -10,9 +10,10 @@ fails sends the work **back** — it is not a wall, it is a door with a hinge.
 ## The pipeline
 
 0. **Plan debate (judgment, upstream).** Before a single dispatch: the plan is
-   attacked by the `plan-debate` seat. Required for multi-file work, lane
-   hand-offs, and `complex` tasks; skippable for one-line chores, and always
-   reported. Protocol: `references/plan-debate.md`.
+   attacked by the `plan-debate` seat. Required whenever the rubric says so
+   (multi-file, lane hand-off, `complex`, ambiguous requirements, or a lane that
+   already failed); skippable for one-line chores. The decision is recorded in the
+   landing report. Protocol: `references/plan-debate.md`.
 1. **Project gates (deterministic)** — the repository's own truth: lint, tests,
    build, typecheck. The orchestrator re-runs them on the final tree; the
    implementer's run is a pre-check, not the proof.
@@ -26,14 +27,22 @@ fails sends the work **back** — it is not a wall, it is a door with a hinge.
    | UI changes | the `qa` lane — a clean `palantir` round (the done-gate; see below), plus a `qa-look` appearance pass |
    | CI / workflows | `github-actions-hardening` |
 
-3. **Land** — the orchestrator commits. Implementers never commit.
+3. **Review debate (judgment, local diff).** `debate-review` on the combined working
+   tree (or each lane's worktree) before the landing report: main + debate lanes, no
+   PR required. Clean → land;
+   findings → bounce/escalate. Its verdict is Gate 3 in the landing report. Running
+   it locally catches the argument before the commit exists; it is skipped only when
+   the judges are uncast. A complex task then hits the setup hard stop; a simple
+   task records the skip in the landing report.
+4. **Land** — only after the landing report and an explicit yes. The orchestrator
+   commits; implementers never commit.
    Lanes that walked in parallel land **one at a time, in a stated order**:
    foundations first (`bugfix`/`chores`/`devops`), most-likely-rejected next, biggest
    blast radius last (`feature`/`complex`/`ui`) — and file overlap decides ties, with
    the later lane doing the rebase. `fellowship.mjs` proposes the order and flags the
    overlaps; reordering needs a reason. Re-run the gates on the **merged** tree, not on
    each worktree alone. Full rule: `references/orchestrator-rules.md`.
-4. **PR rounds** — `debate-review` (main + debate lanes) → `babysit-pr` until the
+5. **PR rounds** — after the push, `debate-review` on the PR → `babysit-pr` until the
    bot rounds are quiet. Exit 3 = duplicate head sha → rerun with `--force`.
 
 ## The three-way verdict
@@ -75,12 +84,17 @@ Rules that keep it honest:
   day.
 - **Every finding is fixed or explicitly justified** in the commit / PR text.
   Silently ignoring one defeats the gate. A justified rejection is a valid answer;
-  a missing one is not.
+  a missing one is not. It must cite a repo fact — file:line, a test, a documented
+  standard — and it goes in the landing report.
 - The re-run goes through the **same gates again** — a bounce does not get to skip
   the pipeline it just failed.
 
 ## clean-code-guard / test-guard / docs-guard
 
+- These run **automatically** in Gate 2. "Automatic" means Gandalf names them in the
+  flow: they are model-invocable, but a guard that is never named does not fire on its
+  own. Gandalf invokes them himself and never asks the user whether to run a guard. A
+  guard that is skipped must be reported as skipped, never simulated.
 - Run them in the orchestrator session on the changed files — they read the diff
   plus the connected code, not just the patch.
 - Findings are ranked; fix or justify each one (above).
@@ -173,6 +187,21 @@ installed by default.
 - The post-review loop: verify each bot finding, fix or reply, resolve threads,
   repeat until quiet.
 - Needs `gh` authenticated (`gh auth login`, one-time interactive).
+
+## Landing report — the one checkpoint
+
+After the last gate and before the commit, Gandalf stops and produces the report
+defined in `references/landing-report.md`. This is the single place the user is
+re-engaged. It carries: the diff summary, the Gate 1 decision, exact gate
+commands and their real output, guard findings and how each was resolved, the
+`qa` / `qa-look` verdict, the Gate 3 review-debate verdict, open items and
+justified rejections, and the proposed commit message.
+
+Assemble it from `run.json`, each lane's `result.json`, and your own gate output —
+not from memory and not from the lane's final message.
+
+The report ends with the landing question: commit / push / PR (per the Session 0
+scope answer). Gandalf does not commit without an explicit yes.
 
 ## Done criteria — evidence, not vibes
 

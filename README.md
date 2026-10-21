@@ -23,12 +23,14 @@ its day renaming files.
 
 This repo gives your agent a **delegation fleet**: named lanes, one model per
 kind of work, a premium skill set on every member — and a real review before
-anything lands. Two skills:
+anything lands. Four skills ship together:
 
 | Skill | Job |
 |---|---|
-| **[`council-of-elrond`](skills/council-of-elrond/SKILL.md)** | **Setup.** Convenes the council: arms the machine from [`packs.json`](skills/council-of-elrond/packs.json), discovers the CLIs you have, casts all ten roles onto the models you have (one question, at most), writes the fleet config, generates lane preambles, verifies the cast. |
+| **[`council-of-elrond`](skills/council-of-elrond/SKILL.md)** | **Setup.** Convenes the council: arms the machine from [`packs.json`](skills/council-of-elrond/packs.json), discovers the CLIs you have, casts the full fellowship onto the models you have (one question, at most), writes the fleet config, generates lane preambles, verifies the cast. |
 | **[`gandalf`](skills/gandalf/SKILL.md)** | **Daily use.** Picks the lane, assembles the brief, dispatches the relay, runs the guards, reviews the diff — and never writes the code himself. |
+| **[`palantir`](skills/palantir/SKILL.md)** | **UI evidence.** The behaviour gate `qa` runs: the page's own WebMCP tools, the DOM timeline, and the network HAR. A child skill of `gandalf`, installed alongside it. |
+| **[`celebrimbor`](skills/celebrimbor/SKILL.md)** | **Design language.** Forges or adopts a validated `DESIGN.md` before `ui` dispatches, so `ui` has a system and `qa-look` has something to judge against. A child skill of `gandalf`. |
 
 ## Install
 
@@ -39,7 +41,7 @@ npx skills add Ahmed-ElKashif/gandalf
 The [skills CLI](https://github.com/vercel-labs/skills) detects your coding
 agents (OpenCode, Claude Code, Codex, Cursor, Gemini CLI, Antigravity, and
 [many more](https://github.com/vercel-labs/skills#supported-agents)) and
-installs **both skills** — globally or per project, as you choose.
+installs **the skills in this repo** — globally or per project, as you choose.
 
 <details>
 <summary>More ways to install</summary>
@@ -51,6 +53,8 @@ npx skills add Ahmed-ElKashif/gandalf --list
 # one skill only
 npx skills add Ahmed-ElKashif/gandalf --skill council-of-elrond
 npx skills add Ahmed-ElKashif/gandalf --skill gandalf
+npx skills add Ahmed-ElKashif/gandalf --skill palantir
+npx skills add Ahmed-ElKashif/gandalf --skill celebrimbor
 
 # target specific agents
 npx skills add Ahmed-ElKashif/gandalf -a opencode -a claude-code
@@ -148,28 +152,93 @@ deep pass.
 
 ### The roles
 
-Ten: seven that **walk**, three that **judge**, and one that **verifies**. The roles are
-fixed wire names (the machinery and the review trio address lanes by them); the members
-behind them are yours to cast:
+Eleven: eight that **walk**, three that **judge**. The roles are fixed wire
+names (the machinery and the review trio address lanes by them); the members
+behind them are yours to cast. LOTR names are display aliases — use them in
+conversation, and keep the wire name beside them.
 
-| Role | What it needs | Carries |
-|---|---|---|
-| `feature` | strongest all-round coder you can afford | stack packs + Ponytail |
-| `ui` | good with visuals, long horizons | craft + DESIGN.md + taste/motion menu |
-| `bugfix` | reasoning-heavy, disciplined | systematic-debugging + regression tests |
-| `devops` | fast, deterministic | CI/CD packs + workflow hardening |
-| `chores` | cheap, steady | pre-commit setup + refactor planning |
-| `complex` | frontier reasoning (premium) | slow & thorough — one deep pass |
-| `qa` | **vision-capable**, sceptical, drives a browser | `palantír` — the UI done-gate |
-| `plan-debate` | a strong, *different* reasoner | attacks the plan before dispatch |
-| `review-main` | a second opinion, any budget | debate-review main pass |
-| `review-debate` | a different, stronger challenger | debate-review challenger |
+| LOTR name | Wire name | What it needs | Carries |
+|---|---|---|---|
+| **Aragorn** | `feature` | strongest all-round coder you can afford | stack packs + Ponytail |
+| **Galadriel** | `ui` | good with visuals, long horizons | craft + DESIGN.md (forge with `celebrimbor` if missing) + taste/motion menu |
+| **Elrond** | `bugfix` | reasoning-heavy, disciplined | systematic-debugging + regression tests |
+| **Gimli** | `devops` | fast, deterministic | CI/CD packs + workflow hardening |
+| **Samwise** | `chores` | cheap, steady | pre-commit setup + refactor planning |
+| **Glorfindel** | `complex` | frontier reasoning (premium) | slow & thorough — one deep pass |
+| **Haldir** | `qa` | patient, sceptical, drives a browser; **no vision needed** | `palantír` — the UI **behaviour** gate |
+| **Legolas** | `qa-look` | **vision-capable** — the only seat that needs it | the appearance pass, against `DESIGN.md` |
+| **Radagast** | `plan-debate` | a strong, *different* reasoner | attacks the plan before dispatch |
+| **Faramir** | `review-main` | a second opinion, any budget | debate-review main pass |
+| **Saruman** | `review-debate` | a different, stronger challenger | debate-review challenger |
 
-`qa` is a **gate, not an advisor**: a UI change isn't done until `qa` returns a clean
-palantír round on it, and a red round bounces back to `ui`. It is the one seat where
-**vision** is mandatory — appearance is a real question no other evidence stream can
-answer — so if your budget affords a single vision model, it belongs here. Full method:
+`qa` is a **behaviour gate, not an advisor**: a UI change isn't done until `qa`
+returns a clean `palantír` round on it, and a red round bounces back to `ui`. It
+needs no vision. `qa-look` is the **eye**: the only vision seat, judging
+appearance against `DESIGN.md`, and its advisory verdict can never override
+`qa` — a beautiful broken page still fails. Full method:
 [`skills/palantir/SKILL.md`](skills/palantir/SKILL.md).
+
+## The Fellowship — a LOTR-style guide
+
+Gandalf does not march to war alone. He summons the company, grills the plan,
+and only returns when the road is safe. The roles carry LOTR names; the wire
+names sit beside them and are what the machinery resolves.
+
+### The quest flow
+
+```mermaid
+flowchart LR
+  Y[You] -->|summon| G[Gandalf]
+  G -->|Session 0: grill + intake| I[Intake]
+  I -->|DESIGN.md?| D{design language}
+  D -->|celebrimbor| C[forge DESIGN.md]
+  D -->|have one / none| P[Plan]
+  C --> P
+  P -->|complex?| R{Radagast?}
+  R -->|yes| RD[Radagast attacks]
+  R -->|no, skip (recorded)| DI[Dispatch]
+  RD -->|holds| DI
+  DI --> H[Hobbits walk]
+  H --> G2[Guards + qa gate]
+  G2 -->|bounce| H
+  G2 -->|pass| G3[Review debate]
+  G3 --> LR[Landing report]
+  LR -->|you say yes| L[Land + push/PR]
+```
+
+### How to summon
+
+```text
+# 1 — cast the fleet once (the council asks one question, at most)
+Use $council-of-elrond to set up my delegation fleet
+
+# 2 — put it to work (Gandalf runs the intake, grills the plan, then the loop)
+Use $gandalf to <describe what you want to build>
+```
+
+Gandalf runs Session 0 first — he asks what you want to build, grills it, settles
+the design language, and decides whether Radagast is needed. Then the war begins.
+He comes back **once**, with the landing report, before anything is committed or
+pushed. Wire names and full per-role loadouts: [`skills/gandalf/references/fellowship.md`](skills/gandalf/references/fellowship.md).
+
+### The company at a glance
+
+| LOTR name | Wire name | Domain |
+|---|---|---|
+| Aragorn | `feature` | full-stack / feature |
+| Galadriel | `ui` | frontend / design craft |
+| Elrond | `bugfix` | debugging / diagnosis |
+| Gimli | `devops` | infrastructure / CI-CD |
+| Samwise | `chores` | maintenance / mechanical |
+| Glorfindel | `complex` | frontier reasoning / architecture |
+| Haldir | `qa` | behaviour verification / browser |
+| Legolas | `qa-look` | visual verification / the eye |
+| Radagast | `plan-debate` | plan challenger |
+| Faramir | `review-main` | second-opinion reviewer |
+| Saruman | `review-debate` | strong challenger |
+
+Gandalf himself is the orchestrator — the seat you are in. He never carries the
+Ring.
 
 ### The shipped preset — free-first
 
@@ -186,7 +255,8 @@ it's still the same skill
 | `devops` | Nemotron 3.5 Lightning Free — fast |
 | `chores` | MiniMax M3.1 Flash Free — the cheapest seat |
 | `complex` | Claude Opus 4.6 Thinking (agy) — one deep pass |
-| `qa` | Nemotron 3.5 Super VL Free — **the only free vision model** in the set |
+| `qa` | Nemotron 3 Ultra Free — the behaviour gate; no vision needed |
+| `qa-look` | Nemotron 3.5 Super VL Free — **the only free vision model** in the set |
 | `plan-debate` | Claude Opus 4.6 Thinking (agy) — the plan's challenger |
 | `review-main` | LongCat 2.5 Preview Free — probe-selected second opinion |
 | `review-debate` | Claude Opus 4.6 Thinking (agy) |
@@ -249,8 +319,9 @@ fleet" in one pass:
 2. **Discover** — probes PATH for implementer CLIs: installed? authenticated?
    which models?
 3. **One question** — budget posture: free-first / your subscriptions / local + mixed.
-4. **Cast** — all ten roles onto real models; every lane labelled with its Basis.
-   `plan-debate` is offered, never assumed.
+4. **Cast** — the full fellowship onto real models; every lane labelled with its Basis.
+   `plan-debate` is cast by default when a suitable model is available; whether it is
+   used per task is Gandalf's call, never a user question.
 5. **Write** — shows the table and the full JSON, gets your approval, validates,
    writes `delegate-fleet.v1`.
 6. **Preambles** — generates `~/.config/delegate-skills/preambles.md` for the
@@ -273,10 +344,11 @@ assets/                      README images
 skills/
 ├── gandalf/
 │   ├── SKILL.md
-│   ├── references/          fleet · loadouts · frontend-formula · plan-debate · operations · gates
+│   ├── roles.json           canonical role registry (11 roles: 8 walk, 3 judge)
+│   ├── references/          fleet · loadouts · frontend-formula · plan-debate · operations · gates · intake · landing-report · fellowship · prior-art
 │   ├── presets/             free-first.json
 │   ├── templates/           fleet.template.json · preambles.example.md
-│   └── scripts/             install-skills.ps1 (reads the council's packs.json)
+│   └── scripts/             fellowship.mjs · preambles.mjs · check-docs.mjs · install-skills.ps1 · tests
 ├── council-of-elrond/
 │   ├── SKILL.md
 │   ├── packs.json           the manifest — what to install, and the credits source
@@ -284,14 +356,42 @@ skills/
 │   ├── patches/             verified diffs for installed third-party skills
 │   ├── references/          casting · arming
 │   ├── presets/             free-first.json
-│   ├── templates/           preambles.example.md
+│   ├── templates/           preambles.example.md (byte-identical to gandalf's)
 │   └── scripts/             vendored engine + patch-skills.mjs (apply · check)
-└── palantir/                OUR OWN child skill — the qa lane's UI evidence contract
-    ├── SKILL.md
-    ├── references/          webmcp · timeline · coverage-audit · limits · formats
-    ├── scripts/             round.mjs — the evidence runner (start · run · assert · look · stop)
-    └── assets/              recorder.js — the DOM timeline (derived from ui-review-loop)
+├── palantir/                OUR OWN child skill — the qa lane's UI evidence contract
+│   ├── SKILL.md
+│   ├── references/          webmcp · timeline · coverage-audit · limits · formats
+│   ├── scripts/             round.mjs — the evidence runner (start · run · assert · look · stop)
+│   └── assets/              recorder.js — the DOM timeline (derived from ui-review-loop)
+└── celebrimbor/             OUR OWN child skill — the DESIGN.md forge (ui lane)
+    └── SKILL.md
 ```
+
+## Verify the repo
+
+The workflow is specified in Markdown, so the docs are part of the machinery.
+Two mechanical checks keep the contract from drifting:
+
+```bash
+npm test        # preamble injector unit tests (node --test)
+npm run check   # roles, aliases, template sync, stale copy, dead links, packs URLs, credits coverage
+```
+
+`npm run check` fails on the exact regressions that used to need a human review:
+a missing role alias, a stale headcount, a hand-prepend instruction, a
+council preambles template that no longer matches gandalf's, a `qa-look` lane
+missing from `fellowship.mjs`, or a `packs.json` URL pointing at the wrong repo.
+On a fork, set `GANDALF_REPO_URL` to the canonical repo URL when running the check;
+the CI workflow already does.
+
+## Prior art
+
+The loop is not invented here. It follows patterns that hold up in production:
+orchestrator-workers and evaluator-optimizer (Anthropic), owned prompts, context,
+and control flow plus small focused agents (12-factor agents), and explicit
+guardrails with human checkpoints (OpenAI). The mapping — and what gandalf
+deliberately does differently — is in
+[`skills/gandalf/references/prior-art.md`](skills/gandalf/references/prior-art.md).
 
 ## Verified patches
 
@@ -317,10 +417,10 @@ entry.
 
 ## Credits
 
-The fellowship stands on other people's work, and it says so. **This list is
-generated from [`packs.json`](skills/council-of-elrond/packs.json)** — the same file the council arms from —
-so nothing can be installed without being credited here, and nothing here is
-credited without being installed from there. Listed in install order.
+The fellowship stands on other people's work, and it says so. **This list
+mirrors [`packs.json`](skills/council-of-elrond/packs.json)** — the same file the
+council arms from — so every installable pack is credited here, and nothing here
+is credited that is not in the manifest. Listed in install order.
 
 | Pack | Licence | Why it is here |
 |---|---|---|
@@ -330,7 +430,8 @@ credited without being installed from there. Listed in install order.
 | [`DietrichGebert/ponytail`](https://github.com/DietrichGebert/ponytail) | MIT | the ladder philosophy behind "the smallest change that works" |
 | [`obra/superpowers`](https://github.com/obra/superpowers) | MIT | `writing-plans`, `systematic-debugging`, `receiving-code-review` and the surrounding discipline |
 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | MIT | `grilling`, `to-tickets`, `code-review`, `domain-modeling` — the orchestrator's interrogation and the judges' scenario-hunting |
-| **`palantír`** — this repo ([`skills/palantir/`](skills/palantir/)) | MIT | **our own child skill.** UI verification through the page's own WebMCP tools plus the DOM timeline and the network HAR — structured evidence instead of a screenshot loop, with vision as *one* deliberate pass on appearance. The `qa` lane's whole method |
+| **`palantír`** — this repo ([`skills/palantir/`](skills/palantir/)) | MIT | **our own child skill.** UI verification through the page's own WebMCP tools plus the DOM timeline and the network HAR — structured evidence instead of a screenshot loop, with vision as *one* deliberate pass on appearance. The `qa` lane's behaviour method; `qa-look` runs its appearance pass |
+| **`celebrimbor`** — this repo ([`skills/celebrimbor/`](skills/celebrimbor/)) | MIT | **our own child skill.** The DESIGN.md forge — ensures the project has a current, validated `DESIGN.md` (Extract / Adopt / Generate / Normalize / Stitch) before the `ui` lane dispatches, so `ui` reads it first and `qa-look` judges against it. Methodology only; draws on external methods when installed (VoltAgent/awesome-design-md, stitch-skills, ui-ux-pro-max, impeccable, ibelick/ui-skills) and validates with `@google/design.md`. |
 | [`amelnagdy/ui-review-loop`](https://github.com/amelnagdy/ui-review-loop) | Apache-2.0 | **tier `optional`** — the human-watches-video loop, installed only on request. **Not** the `ui`/`qa` evidence path. A verified patch fixes its version gate and silent video failure when it is installed. palantír's recorder is derived from it |
 | [`vercel-labs/agent-browser`](https://github.com/vercel-labs/agent-browser) | unverified | the browser backend `palantír` drives. Its experimental WebMCP support is **on by default** for a locally launched Chrome — the channel palantír's tool-call evidence rides |
 | [`emilkowalski/skills`](https://github.com/emilkowalski/skills) | MIT | interface craft and motion — `emil-design-eng`, the `animate` family, `apple-design` |

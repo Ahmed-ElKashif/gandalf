@@ -64,8 +64,8 @@ foreach ($pack in $manifest.packs) {
 
     $tokens = $pack.install -split '\s+'
     if ($tokens[0] -ne 'npx') {
-        # Packs that ship WITH this repo (palantir) have no npx command. Say so plainly
-        # rather than reporting a failure: the skill is already here.
+        # Packs that ship WITH this repo (palantir, celebrimbor) have no npx command.
+        # Say so plainly rather than reporting a failure: the skill is already here.
         Write-Host "    $($pack.repo): ships with this repo - $($pack.install)" -ForegroundColor DarkGray
         continue
     }

@@ -72,7 +72,7 @@ Read this from `packs.json` (`roles` on each entry). Condensed:
 | `qa` | **`palantir`** (ships with this repo) · `agent-browser` · `systematic-debugging` — the UI behaviour gate |
 | `qa-look` | **`palantir`** (appearance pass) · `agent-browser` — the vision seat; judges against `DESIGN.md` |
 | `feature` | stack packs for the repos in use + Ponytail |
-| `ui` | Emil's craft + motion, taste-skill, ibelick UI kit, `frontend-design`; GSAP only when GSAP is in the deps |
+| `ui` | Emil's craft + motion, taste-skill, ibelick UI kit, `frontend-design`; `celebrimbor` to forge/read `DESIGN.md` before dispatch; GSAP only when GSAP is in the deps |
 | `bugfix` | `systematic-debugging` · `verification-before-completion` · `diagnosing-bugs` · `tdd` |
 | `devops` | CI/CD packs + workflow hardening |
 | `chores` | `setup-pre-commit` · `to-spec` · `improve-codebase-architecture` |

@@ -1,0 +1,94 @@
+{
+  "version": "1.0.0",
+  "note": "Canonical role registry. Wire names are fixed (the fleet config, relays, and fellowship.mjs resolve them). LOTR names are display aliases only. Keep the docs in sync; scripts/check-docs.mjs fails when an alias or wire name goes missing.",
+  "roles": [
+    {
+      "wire": "feature",
+      "alias": "Aragorn",
+      "kind": "walk",
+      "domain": "full-stack / feature",
+      "needs": "the strongest all-round coder you can afford",
+      "carries": "stack packs + Ponytail"
+    },
+    {
+      "wire": "ui",
+      "alias": "Galadriel",
+      "kind": "walk",
+      "domain": "frontend / design craft",
+      "needs": "good with visuals and long horizons",
+      "carries": "craft + DESIGN.md (forge with celebrimbor if missing) + taste/motion menu"
+    },
+    {
+      "wire": "bugfix",
+      "alias": "Elrond",
+      "kind": "walk",
+      "domain": "debugging / diagnosis",
+      "needs": "reasoning-heavy, disciplined",
+      "carries": "systematic-debugging + regression tests"
+    },
+    {
+      "wire": "devops",
+      "alias": "Gimli",
+      "kind": "walk",
+      "domain": "infrastructure / CI-CD",
+      "needs": "fast, deterministic edits",
+      "carries": "CI/CD packs + workflow hardening"
+    },
+    {
+      "wire": "chores",
+      "alias": "Samwise",
+      "kind": "walk",
+      "domain": "maintenance / mechanical",
+      "needs": "cheap, steady",
+      "carries": "pre-commit setup + refactor planning"
+    },
+    {
+      "wire": "complex",
+      "alias": "Glorfindel",
+      "kind": "walk",
+      "domain": "frontier reasoning / architecture",
+      "needs": "frontier reasoning (premium)",
+      "carries": "slow & thorough — one deep pass"
+    },
+    {
+      "wire": "qa",
+      "alias": "Haldir",
+      "kind": "walk",
+      "domain": "behaviour verification / browser",
+      "needs": "patient, sceptical, drives a browser (no vision)",
+      "carries": "palantír — the UI behaviour gate"
+    },
+    {
+      "wire": "qa-look",
+      "alias": "Legolas",
+      "kind": "walk",
+      "domain": "visual verification / the eye",
+      "needs": "vision-capable — the only seat that needs it",
+      "carries": "the appearance pass, against DESIGN.md"
+    },
+    {
+      "wire": "plan-debate",
+      "alias": "Radagast",
+      "kind": "judge",
+      "domain": "plan challenger",
+      "needs": "a strong, different reasoner",
+      "carries": "attacks the plan before dispatch"
+    },
+    {
+      "wire": "review-main",
+      "alias": "Faramir",
+      "kind": "judge",
+      "domain": "second-opinion reviewer",
+      "needs": "a second opinion (any budget)",
+      "carries": "debate-review main pass"
+    },
+    {
+      "wire": "review-debate",
+      "alias": "Saruman",
+      "kind": "judge",
+      "domain": "strong challenger",
+      "needs": "a different, stronger challenger",
+      "carries": "debate-review challenger"
+    }
+  ]
+}

@@ -1,34 +1,38 @@
 # Casting — roles, postures, rules
 
-Deep guide: the gandalf skill's `references/fleet.md` (same repo). This page is
-what the council needs to cast well.
+Deep guide: the gandalf skill's `references/fleet.md` (same repo). The canonical
+role map (LOTR alias ↔ wire name) is `gandalf/references/fellowship.md` and
+`gandalf/roles.json`. This page is what the council needs to cast well.
 
 ## The roles
 
-| Role | Profile it needs | Walks when |
-|---|---|---|
-| `feature` | strongest all-round coder your budget allows | everyday product work |
-| `ui` | good with visuals + long horizons (multimodal helps) | anything a human will look at |
-| `bugfix` | reasoning-heavy; patient with root causes | something broke |
-| `devops` | fast; deterministic edits | pipelines, workflows, hooks |
-| `chores` | cheap; steady | bumps, renames, cleanups |
-| `complex` | frontier reasoning — the premium seat | gnarly architecture, subtle concurrency, long marches |
-| `qa` | text-only is fine; sceptical, patient, drives a browser | verifying a running UI — the behaviour done-gate for `ui` |
-| `qa-look` | **vision-capable** — this is the vision seat | judging appearance against `DESIGN.md` |
-| `plan-debate` | a strong, **different** reasoning model | the plan debate, before anything is dispatched |
-| `review-main` | a second opinion; any budget | debate-review main pass |
-| `review-debate` | a different, stronger challenger | debate-review challenger |
+| LOTR name | Wire name | Profile it needs | Walks when |
+|---|---|---|---|
+| **Aragorn** | `feature` | strongest all-round coder your budget allows | everyday product work |
+| **Galadriel** | `ui` | good with visuals + long horizons (multimodal helps) | anything a human will look at |
+| **Elrond** | `bugfix` | reasoning-heavy; patient with root causes | something broke |
+| **Gimli** | `devops` | fast; deterministic edits | pipelines, workflows, hooks |
+| **Samwise** | `chores` | cheap; steady | bumps, renames, cleanups |
+| **Glorfindel** | `complex` | frontier reasoning — the premium seat | gnarly architecture, subtle concurrency, long marches |
+| **Haldir** | `qa` | text-only is fine; sceptical, patient, drives a browser | verifying a running UI — the behaviour gate for `ui` |
+| **Legolas** | `qa-look` | **vision-capable** — this is the vision seat | judging appearance against `DESIGN.md` |
+| **Radagast** | `plan-debate` | a strong, **different** reasoning model | the plan debate, before anything is dispatched |
+| **Faramir** | `review-main` | a second opinion; any budget | debate-review main pass |
+| **Saruman** | `review-debate` | a different, stronger challenger | debate-review challenger |
 
-## The third judge — `plan-debate`
+## The third judge — `plan-debate` (Radagast)
 
-Seven roles **walk**, three **judge**, one **verifies**: `plan-debate`, `review-main` and
-`review-debate` judge; `qa` verifies the running UI and gates `ui`; `qa-look` is the eye.
+Eight roles **walk** (`feature`, `ui`, `bugfix`, `devops`, `chores`, `complex`, `qa`,
+`qa-look`) and three **judge** (`plan-debate`, `review-main`, `review-debate`).
+`qa` is the UI behaviour gate; `qa-look` is the eye. That is the canonical
+taxonomy: eight walkers, three judges.
+
 `plan-debate` is the optional third judge — the seat that attacks the *plan* before
 a single hobbit is dispatched (gandalf skill, `references/plan-debate.md`).
 
-- **Ask about it** in the posture step: *"Want a third judging seat to stress-test
-  the plan before we dispatch?"* Then say plainly what happens if they decline —
-  the `review-debate` seat carries both jobs, and the cast is still legal.
+- **Cast it by default** when a suitable model is available. It is part of the
+  standard cast, not a second question. If the user asks for a leaner fleet, drop it
+  and say plainly that `review-debate` carries both jobs and the cast is still legal.
 - Cast it onto the strongest model that is **not** the orchestrator's own. A plan
   debated against itself proves nothing. Two seats on the same model is a
   legitimate budget choice — but say so, so nobody mistakes it for a second opinion.

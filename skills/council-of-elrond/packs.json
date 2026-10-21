@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_note": "The fellowship's single source of truth. The council (council-of-elrond) reads this file to ARM the machine: it installs every pack whose tier is in defaultTiers, and offers the rest. The README's Credits section is generated from the same entries, in the same order. A pack cannot be installed unless it is credited here, and cannot be credited unless it is installed from here — that is the point of the file. Do not hand-edit the README credits list.",
+  "_note": "The fellowship's single source of truth. The council (council-of-elrond) reads this file to ARM the machine: it installs every pack whose tier is in defaultTiers, and offers the rest. The README's Credits section mirrors the same entries, in the same order. A pack cannot be installed unless it is credited there, and cannot be credited unless it is in this file — that is the point of the file. Add or remove a pack in both places; `check-docs.mjs` fails when the table and this manifest disagree.",
   "_where": "This file lives inside the council-of-elrond skill on purpose. The skills CLI installs `skills/<name>/` and drops repo-root files, so a manifest at the repository root would not survive `npx skills add`. It ships here, with the engine that reads it. `scripts/install-skills.ps1` in the gandalf skill resolves the same path in a dev clone and in an installed ~/.agents/skills/ tree. `patches/manifest.json` records the verified diffs arming applies after install; see `patches/README.md`.",
   "defaultTiers": ["core", "ui"],
   "tiers": {
@@ -109,9 +109,10 @@
       "license": "MIT",
       "tier": "core",
       "roles": ["orchestrator", "plan-debate", "review-main", "review-debate", "bugfix", "chores"],
-      "install": "npx skills add mattpocock/skills -g -y -s grilling to-tickets code-review domain-modeling diagnosing-bugs tdd codebase-design to-spec improve-codebase-architecture setup-pre-commit writing-for-agents wizard",
+      "install": "npx skills add mattpocock/skills -g -y -s grilling grill-with-docs to-tickets code-review domain-modeling diagnosing-bugs tdd codebase-design to-spec improve-codebase-architecture setup-pre-commit writing-for-agents wizard",
       "provides": [
         "grilling",
+        "grill-with-docs",
         "to-tickets",
         "code-review",
         "domain-modeling",
@@ -124,20 +125,33 @@
         "writing-for-agents",
         "wizard"
       ],
-      "why": "grilling interrogates the request until nothing is silently assumed; domain-modeling invents the edge-case scenarios the judging seats hunt with. Note most of this pack is user-invoked (disable-model-invocation), so the preambles must NAME them — an unnamed skill is inert."
+      "why": "grilling interrogates the request until nothing is silently assumed; grill-with-docs wraps grilling + domain-modeling and persists answers to GLOSSARY.md and ADRs; domain-modeling invents the edge-case scenarios the judging seats hunt with. Note most of this pack is user-invoked (disable-model-invocation), so the preambles must NAME them — an unnamed skill is inert. grill-with-docs is user-invoked; Gandalf's automatic intake calls its two underlying skills directly."
     },
     {
       "id": "palantir",
       "owner": "lotr-fellowship",
       "name": "Palantír",
       "repo": "this repo — skills/palantir",
-      "url": "https://github.com/SASA-External/LOTR",
+      "url": "https://github.com/Ahmed-ElKashif/gandalf",
       "license": "MIT",
       "tier": "core",
       "roles": ["qa", "qa-look"],
       "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
       "provides": ["palantir"],
       "why": "OUR OWN child skill. UI verification through the page's own WebMCP tools plus the DOM timeline and the network HAR — structured evidence instead of a screenshot loop, with vision as ONE deliberate pass on appearance. Standalone: it does not depend on ui-review-loop at runtime, so it works where that skill is absent or its video half is broken. Derived from amElnagdy/ui-review-loop's recorder concept, credited above; re-shaped for a WebMCP-first, video-optional evidence model."
+    },
+    {
+      "id": "celebrimbor",
+      "owner": "lotr-fellowship",
+      "name": "Celebrimbor",
+      "repo": "this repo — skills/celebrimbor",
+      "url": "https://github.com/Ahmed-ElKashif/gandalf",
+      "license": "MIT",
+      "tier": "core",
+      "roles": ["ui"],
+      "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
+      "provides": ["celebrimbor"],
+      "why": "OUR OWN child skill. The DESIGN.md forge: ensures the project has a current, validated DESIGN.md (Extract / Adopt / Generate / Normalize / Stitch modes) before the `ui` lane dispatches, so `ui` reads it first and `qa-look` judges against it. Methodology only — it draws on external methods when they are installed (VoltAgent/awesome-design-md, stitch-skills, ui-ux-pro-max, impeccable, ibelick/ui-skills) and validates with @google/design.md. Does not write product code and does not commit."
     },
     {
       "id": "ui-review-loop",

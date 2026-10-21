@@ -50,22 +50,30 @@
  *                        verified touch disjoint files. Prints a warning.
  *   --keep-worktrees     Do not remove a lane's worktree after it finishes.
  *   --dry-run            Print the resolved plan (worktrees, commands, tail lines) and exit.
+ *                        Writes nothing — no directories, no briefs.
  *   --json               Machine-readable summary on stdout instead of the table.
  *   --out-dir <dir>      Where run artifacts go (default: <runDir>).
+ *   --preambles <file>   Role-preamble source (default: $GANDALF_PREAMBLES, else
+ *                        $XDG_CONFIG_HOME/delegate-skills/preambles.md, else
+ *                        ~/.config/delegate-skills/preambles.md).
+ *                        Pass --no-preambles to dispatch the raw brief.
+ *   --no-preambles       Disable role-block injection (raw brief only).
  *   -h, --help           Show this help.
  *
  * Exit codes: 0 = every lane succeeded; 1 = at least one lane failed; 2 = bad plan.
  *
  * Output: per-lane JSON in <runDir>/<lane>/result.json (relay-authored), a tailable
- * log at <runDir>/<lane>.log, and a summary table on stdout. Every lane's session id
- * is printed so a finished lane can be reopened:
+ * log at <runDir>/<lane>.log, a run manifest at <runDir>/run.json, and a summary
+ * table on stdout. Every lane's session id is printed so a finished lane can be
+ * reopened:
  *   opencode --session <id> --continue
  */
 
-import { readFileSync, mkdirSync, existsSync, openSync, closeSync, rmSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, openSync, closeSync, rmSync, readdirSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { join, resolve, basename, dirname, relative } from "node:path";
 import { tmpdir, homedir } from "node:os";
+import { resolvePreamblesPath, composeEffectiveBrief, writeEffectiveBrief } from "./preambles.mjs";
 
 const SKILLS_DIR = toPathEarly(process.env.GANDALF_SKILLS_DIR || join(homedir(), ".agents", "skills"));
 
@@ -106,6 +114,14 @@ const RELAY_EXTRA_FLAGS = {
   agy: ["--dangerously-skip-permissions"],
 };
 
+// ---- preamble injection ----------------------------------------------------
+// The role block (global rules + the lane's own loadout) is what makes a cheap
+// model effective. Relays do not read preambles automatically, so fellowship
+// injects the matching block here. The source is ~/.config/delegate-skills/
+// preambles.md (or $GANDALF_PREAMBLES / --preambles). Disable with --no-preambles.
+// Extraction and composition live in preambles.mjs so they can be tested
+// without dispatching a lane.
+
 function usage(exitCode = 0) {
   const text = readFileSync(new URL(import.meta.url), "utf8");
   const body = text.slice(text.indexOf("/**") + 3, text.indexOf("*/"));
@@ -117,7 +133,7 @@ function parseArgs(argv) {
   const opts = {
     plan: null, lanes: null, brief: null, cd: process.cwd(),
     max: 4, worktree: true, keepWorktrees: false, dryRun: false,
-    json: false, outDir: null,
+    json: false, outDir: null, preambles: null, noPreambles: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -137,6 +153,8 @@ function parseArgs(argv) {
       case "--dry-run": opts.dryRun = true; break;
       case "--json": opts.json = true; break;
       case "--out-dir": opts.outDir = toPath(next()); break;
+      case "--preambles": opts.preambles = toPath(next()); break;
+      case "--no-preambles": opts.noPreambles = true; break;
       case "-h": case "--help": usage(0); break;
       default:
         console.error(`fellowship: unknown argument ${a}`);
@@ -237,7 +255,8 @@ for (const lane of plan.lanes) {
 // falls back to something the user did not choose. Catch it here, not at dispatch.
 const WIRE_ROLES = new Set([
   "feature", "ui", "bugfix", "devops", "chores", "complex",
-  "plan-debate", "review-main", "review-debate", "security-review", "qa",
+  "qa", "qa-look",
+  "plan-debate", "review-main", "review-debate", "security-review",
 ]);
 
 function castLanes() {
@@ -255,7 +274,7 @@ function castLanes() {
 const cast = castLanes();
 for (const lane of plan.lanes) {
   if (!WIRE_ROLES.has(lane.lane)) {
-    problems.push(`lane "${lane.lane}" is not a gandalf role (have: ${[...WIRE_ROLES].join(", ")})`);
+    problems.push(`lane "${lane.lane}" is not a gandalf lane (have: ${[...WIRE_ROLES].join(", ")})`);
   } else if (cast && !cast.has(lane.lane)) {
     problems.push(`lane "${lane.lane}" is not cast in the fleet config — cast it, or pick a lane that is`);
   }
@@ -292,10 +311,9 @@ if (!baseSha) {
   process.exit(2);
 }
 
-mkdirSync(plan.runDir, { recursive: true });
 const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "Z");
 const outDir = opts.outDir || join(plan.runDir, stamp);
-mkdirSync(outDir, { recursive: true });
+// Directories are created after the dry-run branch: --dry-run must not write.
 
 // Worktrees live beside the runs, not inside the repo, so a lane's checkout never
 // shows up in another lane's `git status`.
@@ -317,6 +335,16 @@ function removeWorktree(dir) {
 // ---- resolve each lane's working dir --------------------------------------
 
 const runners = [];
+const preamblesPath = opts.noPreambles ? null : resolvePreamblesPath(opts.preambles);
+if (!opts.noPreambles && opts.preambles && !preamblesPath) {
+  console.error(`fellowship: preambles file not found at ${opts.preambles}`);
+  process.exit(2);
+}
+if (preamblesPath) {
+  if (!opts.json) console.log(`preambles  ${preamblesPath}`);
+} else if (!opts.noPreambles) {
+  console.warn("preambles  none found — lanes run without role blocks (generate one from templates/preambles.example.md)");
+}
 for (const lane of plan.lanes) {
   let cwd = repoRoot;
   let worktreeDir = null;
@@ -331,9 +359,27 @@ for (const lane of plan.lanes) {
   }
   const laneOutDir = join(outDir, lane.lane);
   const logPath = join(outDir, `${lane.lane}.log`);
+  // Auto-inject the role preamble (global rules + the lane's loadout) so the
+  // hobbit actually carries its skill set, even on a plain relay dispatch.
+  // Compose is pure; only a real run writes the effective brief.
+  const composed = preamblesPath
+    ? composeEffectiveBrief({
+        briefPath: lane.brief,
+        laneName: lane.lane,
+        preamblesPath,
+        outDir: laneOutDir,
+      })
+    : null;
+  if (composed?.used && !composed.laneFound) {
+    console.warn(`fellowship: no preamble block for lane "${lane.lane}" — injecting global rules only`);
+  }
+  if (composed?.used && !opts.dryRun) writeEffectiveBrief(composed);
+  // On a dry run the file is not written, but the preview should still show the
+  // command the real run would use — including the injected brief path.
+  const effectiveBrief = composed?.used ? composed.outputPath : lane.brief;
   const argv = [
     RELAYS[lane.relay],
-    "--brief", lane.brief,
+    "--brief", effectiveBrief,
     "--cd", cwd,
     "--lane", lane.lane,
     "--out-dir", laneOutDir,
@@ -344,7 +390,12 @@ for (const lane of plan.lanes) {
   if (plan.timeout) argv.push("--timeout", plan.timeout);
   if (RELAY_EXTRA_FLAGS[lane.relay]) argv.push(...RELAY_EXTRA_FLAGS[lane.relay]);
 
-  runners.push({ lane, cwd, worktreeDir, outDir: laneOutDir, logPath, argv });
+  runners.push({
+    lane, cwd, worktreeDir, outDir: laneOutDir, logPath, argv,
+    brief: lane.brief,
+    effectiveBrief,
+    preamble: composed?.used ? composed.outputPath : null,
+  });
 }
 
 // ---- dry run ---------------------------------------------------------------
@@ -358,6 +409,8 @@ if (opts.dryRun) {
     cwd: r.cwd,
     log: r.logPath,
     tail: `tail -f "${r.logPath}"`,
+    brief: r.brief,
+    preamble: r.preamble,
     command: `node ${r.argv.map((a) => (a.includes(" ") ? JSON.stringify(a) : a)).join(" ")}`,
   }));
   if (opts.json) console.log(JSON.stringify({ dryRun: true, repo: repoRoot, base: baseSha, outDir, lanes: shown }, null, 2));
@@ -371,23 +424,55 @@ if (opts.dryRun) {
       console.log(`[${s.lane}] relay=${s.relay} readOnly=${s.readOnly}`);
       console.log(`  cwd      ${s.cwd}`);
       if (s.worktree) console.log(`  worktree ${s.worktree}`);
+      if (s.preamble) console.log(`  preamble would write ${s.preamble}`);
       console.log(`  log      ${s.tail}`);
       console.log(`  command  ${s.command}\n`);
     }
-    console.log("No worktrees were created and no lane was dispatched (--dry-run).");
+    console.log("No worktrees were created, no files were written, and no lane was dispatched (--dry-run).");
+    console.log("The effective-brief paths above are previews; they are written only on a real run.");
   }
   process.exit(0);
 }
 
 // ---- run -------------------------------------------------------------------
 
-console.log(`fellowship — ${runners.length} lane(s), max ${opts.max} concurrent`);
-console.log(`repo ${repoRoot}`);
-console.log(`base ${baseSha}`);
-console.log(`runs ${outDir}`);
-console.log(`\nWatch a lane live in its own tab:\n`);
-for (const r of runners) console.log(`  [${r.lane.lane}]  tail -f "${r.logPath}"`);
-console.log("");
+mkdirSync(plan.runDir, { recursive: true });
+mkdirSync(outDir, { recursive: true });
+const manifestPath = join(outDir, "run.json");
+const manifest = {
+  version: 1,
+  run: stamp,
+  repo: repoRoot,
+  base: baseSha,
+  createdAt: new Date().toISOString(),
+  preambles: preamblesPath,
+  lanes: runners.map((r) => ({
+    lane: r.lane.lane,
+    relay: r.lane.relay,
+    model: r.lane.model,
+    variant: r.lane.variant,
+    readOnly: r.lane.readOnly,
+    worktree: r.worktreeDir,
+    cwd: r.cwd,
+    brief: r.brief,
+    effectiveBrief: r.effectiveBrief,
+    preamble: r.preamble,
+    outDir: r.outDir,
+    log: r.logPath,
+  })),
+};
+writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+
+if (!opts.json) {
+  console.log(`fellowship — ${runners.length} lane(s), max ${opts.max} concurrent`);
+  console.log(`repo ${repoRoot}`);
+  console.log(`base ${baseSha}`);
+  console.log(`runs ${outDir}`);
+  console.log(`manifest ${manifestPath}`);
+  console.log(`\nWatch a lane live in its own tab:\n`);
+  for (const r of runners) console.log(`  [${r.lane.lane}]  tail -f "${r.logPath}"`);
+  console.log("");
+}
 
 const results = [];
 // The relay's word for "the run finished and the model reported success".
@@ -447,12 +532,12 @@ let next = 0;
 async function worker() {
   while (next < runners.length) {
     const r = runners[next++];
-    console.log(`  → ${r.lane.lane} started`);
+    if (!opts.json) console.log(`  → ${r.lane.lane} started`);
     const res = await runLane(r);
     results.push(res);
     const ok = OK_STATUSES.has(res.status);
     const mark = ok ? "ok" : res.status.toUpperCase();
-    console.log(`  ${ok ? "✓" : "✗"} ${res.lane} ${mark} in ${res.seconds}s${res.sessionId ? ` (session ${res.sessionId})` : ""}`);
+    if (!opts.json) console.log(`  ${ok ? "✓" : "✗"} ${res.lane} ${mark} in ${res.seconds}s${res.sessionId ? ` (session ${res.sessionId})` : ""}`);
   }
 }
 
@@ -478,6 +563,10 @@ await Promise.all(Array.from({ length: Math.min(opts.max, runners.length) }, () 
 const MERGE_RANK = {
   // Foundations and small, likely-rejected fixes first.
   bugfix: 0, chores: 1, devops: 2, feature: 3, complex: 4, ui: 5,
+  // QA lanes are verification, not implementation. They normally touch no
+  // product files, but rank them after the writers so a stray evidence file
+  // never lands before the code it describes.
+  qa: 6, "qa-look": 7,
 };
 
 function touchedList(r) {
@@ -552,7 +641,7 @@ const mergeSteps = planMergeOrder(results);
 const failed = results.filter((r) => !OK_STATUSES.has(r.status));
 
 if (opts.json) {
-  console.log(JSON.stringify({ repo: repoRoot, base: baseSha, outDir, results, mergeOrder: mergeSteps }, null, 2));
+  console.log(JSON.stringify({ repo: repoRoot, base: baseSha, outDir, manifest: manifestPath, results, mergeOrder: mergeSteps }, null, 2));
 } else {
   results.sort((a, b) => (a.lane < b.lane ? -1 : a.lane > b.lane ? 1 : 0));
   console.log(`\n===== FELLOWSHIP SUMMARY =====`);
@@ -620,7 +709,7 @@ if (!opts.keepWorktrees) {
     if (OK_STATUSES.has(r.status) || worktreeHasWork(r.worktreeDir)) { kept++; continue; }
     removeWorktree(r.worktreeDir);
   }
-  if (kept > 0) console.log(`\nworktrees kept for ${kept} lane(s) that hold work — merge them back, then remove with \`git worktree remove\`.`);
+  if (kept > 0 && !opts.json) console.log(`\nworktrees kept for ${kept} lane(s) that hold work — merge them back, then remove with \`git worktree remove\`.`);
 }
 
 process.exit(failed.length ? 1 : 0);

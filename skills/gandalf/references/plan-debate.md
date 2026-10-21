@@ -23,11 +23,12 @@ flowchart TD
   P --> G1
   D --> IMP[Implementer walks headless]
   IMP --> G2{{"Gate 2 — project gates + guards<br/>lint · test · build · clean-code / test / docs"}}
-  G2 -->|pass| L[Land — orchestrator commits]
   G2 -->|bounce| D
-  L --> G3{{"Gate 3 — review debate<br/>debate-review main + challenger"}}
+  G2 -->|pass| G3{{"Gate 3 — review debate<br/>local diff · main + challenger"}}
   G3 -->|findings| D
-  G3 -->|clean| Y[Done]
+  G3 -->|clean| LR[Landing report]
+  LR -->|explicit yes| L[Land — orchestrator commits]
+  L --> PR[PR rounds + babysit]
 ```
 
 Gate 1 is new. Gates 2 and 3 are `references/gates.md`; the send-back rule that
@@ -35,23 +36,32 @@ makes Gate 2 a loop rather than a wall lives there too.
 
 ## When it runs
 
+Gandalf decides from the complexity rubric below (also summarized in
+`references/intake.md`, step 5). The user is never asked; the decision is recorded
+in the landing report.
+
 **Required** when any of these is true:
 
 - the task will touch **more than one file**,
 - more than one lane is involved (a lane hand-off counts),
-- the lane is `complex`.
+- the lane is `complex`,
+- the requirements are ambiguous or have no clear acceptance test,
+- a lane has already failed once on this task.
 
 **Skippable** for `chores`-class one-liners — a rename, a dependency bump, a
-typo — where the plan is the diff.
+typo — where the plan is the diff. Gandalf still names the skip in the report.
 
-**The orchestrator decides, and always tells the user what it did**: either the
-plan that survived the debate, or *"plan debate skipped: single-file chore"*.
-Silence is not an option. A user who cannot see that a gate was skipped cannot
-tell it apart from a gate that was forgotten.
+**The orchestrator decides, and records it in the landing report**: either the plan
+that survived the debate, or *"plan debate skipped: single-file chore"*. Never a user
+question, never a mid-run check-in. Silence is not an option. A user who cannot see
+that a gate was skipped cannot tell it apart from a gate that was forgotten.
 
-If the `plan-debate` lane is uncast, fall back to `review-debate` **and say so** —
-the plan is still attacked, by a seat the debate was not sized for. If neither is
-cast, say that too. A missing gate is reported, never quietly simulated.
+If the `plan-debate` lane is uncast, fall back to `review-debate` **and record the
+fallback** — the plan is still attacked, by a seat the debate was not sized for. If
+neither is cast and the rubric requires the debate, that is a setup blocker: stop
+and ask the user to cast a judge. A required gate is never silently simulated; if
+the rubric did not require the debate, the uncast seats are irrelevant and the skip
+is recorded as usual.
 
 ## The protocol
 
@@ -100,6 +110,24 @@ the lane, carrying:
 
 That brief is what `references/operations.md` sends. Gate 1 and the dispatch are
 the same document on either side of the argument.
+
+## The mechanical check
+
+A skipped plan debate is the one gate whose failure is invisible in a green test
+run. At landing, compare the skip reason to the actual change:
+
+```bash
+# the merged working tree, before the commit exists
+git diff --name-only <base>
+
+# or the union across lane worktrees, before they are merged
+git -C <worktree> diff --name-only <base>
+```
+
+If the union touches more than one file, a lane hand-off happened, the requirements
+were ambiguous, or a lane had already failed once, the skip was wrong. Hold the
+debate before commit, record both the original skip and the correction, and do not
+pretend the gate ran on time.
 
 ## Why not reuse `debate-review`
 

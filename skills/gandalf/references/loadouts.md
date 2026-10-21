@@ -6,7 +6,7 @@ recorded in the skills lockfile) — all go through the skills CLI, so any
 skill-aware agent on the machine picks them up.
 
 Full batch in one go: `scripts/install-skills.ps1`. Or install role by role from
-this file.
+this file. Canonical role map: `references/fellowship.md` and `roles.json`.
 
 ## Core — the machinery every fleet needs
 
@@ -28,7 +28,7 @@ security pass, not a guard gate. `ui-review-loop` (`amelnagdy`, Apache-2.0, tier
 `packs.json` (in the `council-of-elrond` skill) is the canonical list (tiers,
 licences, install order, the README credits). This file is the per-role narrative.
 
-## `orchestrator` — the guide
+## Gandalf — orchestrator (the guide)
 
 Not a lane; the seat you are sitting in. The loadout here is aimed at *you*, not at
 a relay: they are the skills the orchestrator runs in its own session.
@@ -36,13 +36,15 @@ a relay: they are the skills the orchestrator runs in its own session.
 | Pack | Command | Ships |
 |---|---|---|
 | Plan discipline | `npx skills add obra/superpowers -g -y -s writing-plans executing-plans` | `writing-plans` shapes the brief the plan debate attacks; `executing-plans` for multi-step landings |
-| Interrogation | `npx skills add mattpocock/skills -g -y -s grilling to-tickets code-review` | `grilling` empties the request of assumptions, `to-tickets` splits the plan, `code-review` is the diff pass |
+| Interrogation | `npx skills add mattpocock/skills -g -y -s grilling grill-with-docs to-tickets code-review` | `grilling` empties the request of assumptions; `grill-with-docs` wraps grilling + domain-modeling and writes `GLOSSARY.md` / ADRs; `to-tickets` splits the plan; `code-review` is the diff pass |
 | Guards | `npx skills add amElnagdy/guard-skills -g -y` | `clean-code-guard` / `test-guard` / `docs-guard` — they run *in the orchestrator session* |
+| Design system forge (optional) | ships with this repo (`skills/celebrimbor/`) | `celebrimbor` — forge or pick `DESIGN.md` before `ui` dispatch; triggerable on demand alongside `palantir` |
 
-`grilling` and `code-review` auto-trigger; `to-tickets` and the `*-guard` skills are
-user-invoked and must be **named** in the flow to fire.
+`grilling` and `code-review` auto-trigger. `to-tickets` and the `*-guard` skills are
+model-invocable but must be **named** by Gandalf in the flow — naming them is the
+automatic part; Gandalf never asks the user for permission to run a guard.
 
-## `feature` — the all-rounder
+## Aragorn — feature (full-stack) *(wire name: `feature`)*
 
 Stack packs — install the ones your repos actually use:
 
@@ -60,7 +62,7 @@ Stack packs — install the ones your repos actually use:
 Plus the discipline pair (also `bugfix`): `systematic-debugging` and
 `verification-before-completion` when things break mid-task.
 
-## `ui` — the crafter
+## Galadriel — ui (design craft) *(wire name: `ui`)*
 
 | Pack | Command | Highlights |
 |---|---|---|
@@ -68,9 +70,10 @@ Plus the discipline pair (also `bugfix`): `systematic-debugging` and
 | Taste pack (art direction) | `npx skills add Leonxlnx/taste-skill -g -y` | `design-taste-frontend` — one skill; it also audits an existing page before redesigning it. `minimalist-ui` and `high-end-visual-design` moved to `Leonxlnx/taste-skill-classics`, `imagegen-*` to `Leonxlnx/imagegen-skills` — install those separately if you want them. |
 | UI systems kit | `npx skills add ibelick/ui-skills -g -y` | `baseline-ui`, `improve-ui`, `create-design-md`, `fixing-accessibility`, `fixing-metadata`, `fixing-motion-performance`, `component-canvas`, `ui-skills-root` |
 | Frontend-design (identity asks) | `npx skills add anthropics/skills -g -y -s frontend-design` | `frontend-design` |
+| DESIGN.md forge | ships with this repo (`skills/celebrimbor/`) | `celebrimbor` — forge or pick the project's `DESIGN.md` before `ui` dispatch; draws on `VoltAgent/awesome-design-md`, `ui-ux-pro-max`, and extractors when they are installed |
 | GSAP (only when GSAP is in the deps) | `npx skills add greensock/gsap-skills -g -y` | `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-react`, … |
 
-## `qa` — the palantír (behaviour gate)
+## Haldir — qa (behaviour gate) *(wire name: `qa`)*
 
 The verifier. It watches the running app through the page's own agent surface and asserts
 what happened — it does not look at the app and guess.
@@ -96,7 +99,7 @@ Two rules that keep it honest (both are in the palantír skill, and both have te
 - **Assertions come from structured evidence, not pixels.** A tool call showing
   `{"text":"42"}` is evidence; a screenshot showing a number is a guess about a picture.
 
-## `qa-look` — the eye (appearance only)
+## Legolas — qa-look (the eye) *(wire name: `qa-look`)*
 
 The **only** seat that requires vision, and the only seat that judges appearance.
 
@@ -119,14 +122,14 @@ language the repo already committed to?**
 - **States, not vibes.** It reviews the named states the `ui` lane declared (empty,
   loading, error, long content), so the pass is reproducible.
 
-## `bugfix` — the debugger
+## Elrond — bugfix (debugging) *(wire name: `bugfix`)*
 
 | Pack | Command | Ships |
 |---|---|---|
 | Superpowers subset | `npx skills add obra/superpowers -g -y -s systematic-debugging verification-before-completion writing-plans executing-plans receiving-code-review` | the TDD/debug/verify discipline |
 | Matt's engineering kit | `npx skills add mattpocock/skills -g -y -s diagnosing-bugs tdd codebase-design domain-modeling to-spec improve-codebase-architecture setup-pre-commit writing-for-agents wizard grilling to-tickets code-review` | root-cause diagnosis, spec-first refactors, pre-commit setup |
 
-## `devops` — the plumber
+## Gimli — devops (infrastructure) *(wire name: `devops`)*
 
 | Pack | Command | Ships |
 |---|---|---|
@@ -134,18 +137,18 @@ language the repo already committed to?**
 | GH Actions authoring | `npx skills add wshobson/agents -g -y -s github-actions-templates` | workflow templates |
 | GH Actions hardening | `npx skills add github/awesome-copilot -g -y -s github-actions-hardening` | injection / privilege review — run on every workflow edit |
 
-## `chores` — the mechanic
+## Samwise — chores (maintenance) *(wire name: `chores`)*
 
 No dedicated pack: the mechanic borrows from the kit above —
 `setup-pre-commit`, `to-spec`, `improve-codebase-architecture`, `writing-plans`,
 `executing-plans` — and lives by the Ponytail ladder.
 
-## `complex` — the Balrog-slayer
+## Glorfindel — complex (frontier) *(wire name: `complex`)*
 
 The model is the loadout. Its preamble (slow & thorough, plan written into the
 run, verify between steps) is what shapes the pass; no skill packs required.
 
-## `plan-debate` / `review-main` / `review-debate` — the judges
+## Radagast / Faramir / Saruman — plan-debate / review-main / review-debate (the judges) *(wire names: `plan-debate`, `review-main`, `review-debate`)*
 
 Three seats, one loadout. A judge needs to invent the case the author did not, find
 the root cause in the diff, and take criticism without capitulating to it.

@@ -1,30 +1,34 @@
 # Casting the fellowship — roles, members, dials
 
-gandalf leads ten roles: seven that walk (implementers), two that judge
-(`review-main` and `review-debate` on the diff), and one that **verifies**
-(`qa` — the palantír that watches a running UI). `plan-debate` is the optional third
-judge, which attacks the plan before anything is dispatched. The
-roles are **fixed wire names** — `delegate-setup` resolves lanes by them, and
-`debate-review` expects `review-main` and `review-debate` by name. The members
-behind the roles are yours: any delegation-capable CLI + model. `plan-debate` is the
-optional third judge — the council asks before casting it, and the fleet is legal
-without it. Protocol: `references/plan-debate.md`.
+gandalf leads **eleven roles**: eight that **walk** (`feature`, `ui`, `bugfix`,
+`devops`, `chores`, `complex`, `qa`, `qa-look`) and three that **judge**
+(`plan-debate`, `review-main`, `review-debate`). `qa` is the UI behaviour gate;
+`qa-look` is the eye. The roles are **fixed wire names** — `delegate-setup`
+resolves lanes by them, and `debate-review` expects `review-main` and
+`review-debate` by name. The members behind the roles are yours: any
+delegation-capable CLI + model. Canonical map: `references/fellowship.md` and
+`roles.json`.
+
+`plan-debate` is cast by default when a suitable model is available. Whether it
+is *used* on a given task is Gandalf's complexity call (rubric in
+`references/plan-debate.md`), never a user question. If the seat is uncast, the
+`review-debate` seat carries the work.
 
 ## The roles
 
-| Role | Profile it needs | Walks when |
-|---|---|---|
-| `feature` | strongest all-round coder your budget allows | everyday product work on any of the stack packs |
-| `ui` | good with visuals + long horizons (multimodal helps) | anything a human will look at |
-| `bugfix` | reasoning-heavy; patient with root causes | something broke |
-| `devops` | fast; deterministic edits | pipelines, workflows, hooks |
-| `chores` | cheap; steady | bumps, renames, cleanups |
-| `complex` | frontier reasoning — the premium seat | the Balrog: gnarly architecture, subtle concurrency, long marches |
-| `qa` | **text-only is fine**; patient, sceptical, drives a browser | verifying a running UI — the behaviour done-gate for `ui` |
-| `qa-look` | **vision-capable** — this is the vision seat | judging appearance against the design language |
-| `plan-debate` | a strong, *different* reasoning model | the plan's challenger — before anything is dispatched |
-| `review-main` | a second opinion; any budget | debate-review main pass |
-| `review-debate` | a different, stronger challenger | debate-review challenger |
+| LOTR name | Wire name | Profile it needs | Walks when |
+|---|---|---|---|
+| **Aragorn** | `feature` | strongest all-round coder your budget allows | everyday product work on any of the stack packs |
+| **Galadriel** | `ui` | good with visuals + long horizons (multimodal helps) | anything a human will look at |
+| **Elrond** | `bugfix` | reasoning-heavy; patient with root causes | something broke |
+| **Gimli** | `devops` | fast; deterministic edits | pipelines, workflows, hooks |
+| **Samwise** | `chores` | cheap; steady | bumps, renames, cleanups |
+| **Glorfindel** | `complex` | frontier reasoning — the premium seat | the Balrog: gnarly architecture, subtle concurrency, long marches |
+| **Haldir** | `qa` | **text-only is fine**; patient, sceptical, drives a browser | verifying a running UI — the behaviour gate for `ui` |
+| **Legolas** | `qa-look` | **vision-capable** — this is the vision seat | judging appearance against the design language |
+| **Radagast** | `plan-debate` | a strong, *different* reasoning model | the plan's challenger — before anything is dispatched |
+| **Faramir** | `review-main` | a second opinion; any budget | debate-review main pass |
+| **Saruman** | `review-debate` | a different, stronger challenger | debate-review challenger |
 
 Cast `plan-debate` onto the strongest model that is **not** the orchestrator's own:
 a plan debated against itself proves nothing. Uncast, it falls back to the

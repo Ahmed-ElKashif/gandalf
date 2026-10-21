@@ -9,12 +9,33 @@ their own skill docs.
 
 Relays live at `~/.agents/skills/<relay>/scripts/relay.mjs`.
 
+## Preambles — the role block travels with the brief
+
+`fellowship.mjs` injects the matching role block automatically: it reads
+`$GANDALF_PREAMBLES` / `--preambles <file>`, else
+`$XDG_CONFIG_HOME/delegate-skills/preambles.md`, else
+`~/.config/delegate-skills/preambles.md`; extracts the global block plus the lane
+block (the `##` heading containing the wire name); and writes an effective brief
+(`brief.effective.md`) that the relay receives. The hobbit therefore always carries
+its loadout, even on a plain dispatch.
+
+- Use `fellowship.mjs` for **every** dispatch — single lane or many — so the
+  preamble is injected. `--lanes feature --brief ...` is the single-lane form.
+- Disable with `--no-preambles` (raw brief only) when the brief already contains
+  the role block.
+- Bounces go through the relay `--session` path: the preamble is already in that
+  session's context, so do not re-inject.
+- If no preambles file exists, the script warns and dispatches raw briefs. That is
+  a degraded run — generate the file from `templates/preambles.example.md` first.
+- A lane block that is missing also warns; the global rules still travel, but the
+  role loadout does not.
+
 ## Writing the brief
 
 - Self-contained: task, constraints, acceptance criteria, gates to run, "do not
   commit".
-- Prepend the role block from your preambles file
-  (`~/.config/delegate-skills/preambles.md`).
+- The injector adds the role block; do not add it by hand unless you are using
+  `--no-preambles` with a brief that already carries it.
 - Demand evidence: "paste the exact commands and their real output."
 - Secrets never travel inline — headless briefs can be visible in the process list.
   Reference env vars or credential-file paths instead.
@@ -130,10 +151,12 @@ node ~/.agents/skills/opencode-delegate/scripts/relay.mjs \
   into it and the same document becomes the dispatch brief.
 - `--read-only` is not optional. A challenger that can edit the tree has stopped
   being a challenger.
-- No `plan-debate` seat cast? Run it on `--lane review-debate` and say so in the
-  brief. Neither cast? Report the skipped gate; never simulate it.
-- It is only required for multi-file work, lane hand-offs, and `complex` lanes —
-  and the orchestrator always tells the user which of those it decided.
+- No `plan-debate` seat cast? Run it on `--lane review-debate` and record the
+  fallback in the landing report. Neither cast? Report the skipped gate; never
+  simulate it.
+- It is required for multi-file work, lane hand-offs, `complex` lanes, ambiguous
+  requirements, and a lane that has already failed once — and the landing report
+  records which of those it decided. The decision is Gandalf's, never a user question.
 
 ## Bounce — sending findings back
 
@@ -187,7 +210,7 @@ Key flags:
   common simultaneous fleet (`feature`, `ui`, `bugfix`, `devops`). Raise it once your own
   runs are the evidence, not before.
 - `--dry-run` prints the resolved worktrees, commands, and `tail -f` lines without
-  creating anything. Run it first.
+  creating directories or writing briefs. Run it first.
 - `--no-worktree` shares one tree for every lane. It prints a warning, because two lanes
   touching one file corrupt each other and serial dispatch is what hides that today.
 - `--keep-worktrees` is the default for **successful** lanes — their worktree holds the
@@ -229,7 +252,13 @@ non-`completed` status means a model failure: no `result.json` means a bad invoc
 A lane name must be a real wire name **and** cast in your fleet config — the script
 rejects anything else rather than let the relay silently fall back.
 
+### The run manifest
 
+`run.json` in the run directory records the run id, repo, base, preambles source,
+and every lane's relay/model/worktree/brief/effective brief. The landing report
+reads it; do not reconstruct the run from memory.
+
+## Reviewer health pulse
 
 ```bash
 node ~/.agents/skills/debate-review/scripts/review-pr.mjs --check

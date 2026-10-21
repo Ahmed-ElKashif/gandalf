@@ -2,7 +2,7 @@
 name: council-of-elrond
 description: >-
   Convene the council that forms your delegation fleet — gandalf-style casting:
-  arm the machine from packs.json, ask one grounding question, cast the ten roles
+  arm the machine from packs.json, ask one grounding question, cast the eleven roles
   (feature, ui, bugfix, devops, chores, complex, qa, qa-look, plan-debate, review-main,
   review-debate) onto the CLIs and models you actually have, write the
   delegate-fleet config, generate lane preambles, and verify the cast. Use when the
@@ -54,14 +54,17 @@ One concept: **lanes**. A lane names an implementer and optional dials.
 7. Every lane carries a **Basis**: `preset` / `your answer` / `my opinion` /
    `schema requirement`. Beyond the preset, your own dial picks are offered as an
    addendum after the table — never pre-filled silently.
-8. The eleven roles are the standard cast: eight that **walk** (`feature`, `ui`,
-   `bugfix`, `devops`, `chores`, `complex`, `qa`, `qa-look`) and three that **judge**
-   (`plan-debate`, `review-main`, `review-debate`). Fewer is fine when the user
-   asks for less; never more without asking. `plan-debate` is the optional third
-   judge — ask about it, and say plainly what falls back if they decline.
-   `qa` is the UI **behaviour** gate and needs no vision; `qa-look` is the **eye**
-   (the only vision seat) and its verdict cannot override `qa`. Splitting them stops
-   the judge from being its own witness.
+8. The eleven roles are the standard cast: eight that **walk** (`feature`/Aragorn,
+   `ui`/Galadriel, `bugfix`/Elrond, `devops`/Gimli, `chores`/Samwise, `complex`/
+   Glorfindel, `qa`/Haldir, `qa-look`/Legolas) and three that **judge**
+   (`plan-debate`/Radagast, `review-main`/Faramir, `review-debate`/Saruman). Fewer
+   is fine when the user asks for less; never more without asking. `plan-debate`
+   is part of the standard cast when a suitable model is available — cast it by
+   default and say so in the table; if the user asks for a leaner fleet, drop it
+   and say plainly that `review-debate` is the fallback. Do not spend a second
+   question on it. `qa` is the UI **behaviour** gate and needs no vision; `qa-look`
+   is the **eye** (the only vision seat) and its verdict cannot override `qa`.
+   Splitting them stops the judge from being its own witness.
 9. Never edit `AGENTS.md`, `CLAUDE.md`, or other user agent-instruction files.
 10. Never dispatch coding work from this skill. Verification runs are read-only
     health checks only.
@@ -150,10 +153,14 @@ node "<skill-dir>/scripts/config.mjs" load --cwd "$PWD"
 
 Ask **one** question, then stop asking:
 
-> How should I cast? **(1) Free-first** — the zero-budget fellowship: six free
+> How should I cast? **(1) Free-first** — the zero-budget fellowship: free
 > OpenCode models plus Antigravity for the dark roads. **(2) Your subscriptions** —
 > tell me what you pay for and what to spare, and I'll cast against those.
 > **(3) Local + mixed** — tell me your provider or GPU setup.
+
+`plan-debate` is not a second question: cast it by default when a suitable model is
+available, show it in the lane table, and note the fallback only if the user asks for
+a leaner fleet.
 
 ### 5. Cast
 
@@ -195,8 +202,10 @@ result, then write it to the fleet's config directory:
   otherwise `~/.config/delegate-skills/preambles.md`.
 
 If a preambles file already exists, show what changes before overwriting.
-Note it is a family convention: relays do not read it automatically — the
-orchestrator prepends the matching role block to every brief.
+The template is **byte-identical to gandalf's copy** — it is one family convention,
+not two. If you change a standing rule, change both copies (or run
+`node skills/gandalf/scripts/check-docs.mjs`). `fellowship.mjs` injects the matching
+role block automatically; relays do not read the file, and nobody hand-prepends it.
 
 ### 8. Verify & hand off
 
@@ -225,8 +234,8 @@ node ~/.agents/skills/debate-review/scripts/review-pr.mjs --check
 > one table shown, one approval, `delegate-skills` installed first.
 > → discover → "opencode and agy detected; opencode models reported."
 > → load → nothing configured. → posture 1 → propose `presets/free-first.json`
-> verbatim (Basis: `preset`).
-> → ask: cast a third judge for the plan debate? Yes → `plan-debate` onto agy Opus.
+> verbatim (Basis: `preset`), with `plan-debate` cast onto agy Opus as the standard
+> third judge (no extra question).
 > → show table + JSON → approve → validate → `write --scope global` → load ok.
 > → preambles adapted to the free-first members, shown, written.
 > → pulse: `review-main ok · review-debate ok`.
