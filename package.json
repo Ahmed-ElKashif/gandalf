@@ -9,7 +9,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test skills/gandalf/scripts/preambles.test.mjs",
+    "test": "node --test skills/gandalf/scripts/*.test.mjs",
     "check": "node skills/gandalf/scripts/check-docs.mjs",
     "verify": "npm test && npm run check"
   }

@@ -114,6 +114,21 @@ const RELAY_EXTRA_FLAGS = {
   agy: ["--dangerously-skip-permissions"],
 };
 
+/**
+ * The extra flags a relay needs, for THIS lane.
+ *
+ * A read-only lane never gets --dangerously-skip-permissions: the agy relay
+ * rejects the pair outright ("--read-only and --dangerously-skip-permissions are
+ * mutually exclusive"), and --read-only already composes --sandbox
+ * --dangerously-skip-permissions itself. Passing both made every read-only agy
+ * lane un-dispatchable — and the shipped free-first preset casts plan-debate and
+ * review-debate on agy, so both gates failed before they could run.
+ */
+function relayExtraFlags(relay, readOnly) {
+  if (readOnly) return [];
+  return RELAY_EXTRA_FLAGS[relay] || [];
+}
+
 // ---- preamble injection ----------------------------------------------------
 // The role block (global rules + the lane's own loadout) is what makes a cheap
 // model effective. Relays do not read preambles automatically, so fellowship
@@ -388,7 +403,7 @@ for (const lane of plan.lanes) {
   if (lane.model) argv.push("--model", lane.model);
   if (lane.variant) argv.push("--variant", lane.variant);
   if (plan.timeout) argv.push("--timeout", plan.timeout);
-  if (RELAY_EXTRA_FLAGS[lane.relay]) argv.push(...RELAY_EXTRA_FLAGS[lane.relay]);
+  argv.push(...relayExtraFlags(lane.relay, lane.readOnly));
 
   runners.push({
     lane, cwd, worktreeDir, outDir: laneOutDir, logPath, argv,

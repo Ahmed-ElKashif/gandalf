@@ -216,6 +216,14 @@ Key flags:
 - `--keep-worktrees` is the default for **successful** lanes — their worktree holds the
   diff until you merge it. A worktree is removed only when it is provably clean.
 
+### A read-only lane stays read-only
+
+The dispatcher never passes `--dangerously-skip-permissions` to a read-only lane. The agy
+relay rejects `--read-only` together with that flag as mutually exclusive, and
+`--read-only` already composes `--sandbox --dangerously-skip-permissions` itself. A
+writing agy lane still needs the flag: agy auto-denies writes outside the trusted
+workspace, so the lane would stall on a permission prompt nobody can answer.
+
 ### What isolation buys, and why it is the default
 
 Measured on a real five-lane run: the lanes touched five *disjoint* file sets — and that

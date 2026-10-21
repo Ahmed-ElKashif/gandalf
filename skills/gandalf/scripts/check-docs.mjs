@@ -315,6 +315,33 @@ for (const doc of ["README.md", "skills/gandalf/SKILL.md"]) {
   else pass(`${doc}: all local links resolve`);
 }
 
+// ---- 10. the dispatcher's read-only rule -----------------------------------
+// The agy relay rejects --read-only together with --dangerously-skip-permissions
+// as mutually exclusive, and it composes both flags itself for a read-only run.
+// A dispatcher that adds the flag anyway makes every read-only agy lane
+// un-dispatchable — which is what the shipped free-first preset casts.
+
+const readOnlyGuard = [
+  [/function relayExtraFlags\(relay, readOnly\)/, "relayExtraFlags(relay, readOnly) is not defined"],
+  [/if \(readOnly\) return \[\];/, "a read-only lane must still be given no extra flags"],
+  [/argv\.push\(\.\.\.relayExtraFlags\(lane\.relay, lane\.readOnly\)\)/, "extra relay flags do not go through relayExtraFlags"],
+];
+const guardProblems = readOnlyGuard
+  .filter(([pattern]) => !pattern.test(fellowship))
+  .map(([, label]) => label);
+if (guardProblems.length) {
+  for (const problem of guardProblems) fail(`fellowship.mjs: ${problem}`);
+} else {
+  pass("fellowship.mjs: a read-only lane is given no --dangerously-skip-permissions");
+}
+
+const operationsText = read("skills/gandalf/references/operations.md");
+if (!/--dangerously-skip-permissions/.test(operationsText) || !/mutually exclusive/.test(operationsText)) {
+  fail("operations.md: the read-only relay rule is not stated");
+} else {
+  pass("operations.md: the read-only relay rule is stated");
+}
+
 // ---- report ---------------------------------------------------------------
 
 for (const message of passes) console.log(`✓ ${message}`);
