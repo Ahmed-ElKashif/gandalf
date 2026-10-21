@@ -1,0 +1,17 @@
+diff --git a/scripts/lib/dispatch.mjs b/scripts/lib/dispatch.mjs
+index c59a2f2..6104bd4 100644
+--- a/scripts/lib/dispatch.mjs
++++ b/scripts/lib/dispatch.mjs
+@@ -89,8 +89,11 @@ export function dispatch({ role, who, brief, cwd, outDir, timeout }) {
+   if (result.status !== 'completed') {
+     throw new Error(`${role}: relay finished with status "${result.status}" (see ${dir})`);
+   }
++  // A read-only violation is a hard failure, not a warning: the implementer was
++  // asked to read, and it wrote. The orchestrator must bounce or escalate, not
++  // silently land the diff. (LOCAL PATCH — upstream logs a WARNING only.)
+   if (result.readOnlyViolation === true) {
+-    log(`WARNING ${role}: relay reported a read-only violation. Inspect ${dir}`);
++    throw new Error(`${role}: relay reported a read-only violation (see ${dir})`);
+   }
+ 
+   log(`${role}: done in ${seconds}s`);

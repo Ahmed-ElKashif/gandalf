@@ -46,6 +46,20 @@
       "why": "Cleanup must never be the thing that fails. On Windows a relay killed from outside leaves a child holding the temporary snapshot, and `rmSync` throws EPERM — masking whatever actually went wrong. The patch retries five times for the handles to drop, then names the directory and returns instead of throwing. An orphaned temp dir is harmless; a misleading EPERM is not."
     },
     {
+      "id": "debate-review-readonly-violation-fails",
+      "skill": "debate-review",
+      "pack": "review-skills",
+      "tier": "core",
+      "required": true,
+      "scope": "general",
+      "files": ["scripts/lib/dispatch.mjs"],
+      "patch": "debate-review-readonly-violation-fails.patch",
+      "upstream": "https://github.com/amElnagdy/review-skills",
+      "upstreamCommit": "3cfce3963b4d4d99a8b9059f1ece6726405b7bd3",
+      "upstreamDate": "2026-10-09",
+      "why": "A judge that writes is not a judge. debate-review runs its reviewers read-only, but dispatch.mjs only LOGGED a WARNING when the relay reported readOnlyViolation: true — the run still returned success and the diff could be landed. The patch turns the WARNING into a thrown error so the review fails loudly and the orchestrator bounces or escalates instead of shipping a review that touched the tree."
+    },
+    {
       "id": "ui-review-loop-version-and-video",
       "skill": "ui-review-loop",
       "pack": "ui-review-loop",
