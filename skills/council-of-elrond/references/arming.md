@@ -60,6 +60,21 @@ diff, update `patches/<id>.patch` and the `upstreamCommit` in `manifest.json`, t
 re-run. Never force a patch onto code it was not written for. Requires `git` on
 PATH; `git apply` is the engine. `--dry-run` and `--json` exist for CI.
 
+## Did it actually land?
+
+The upstream installer sometimes prints "Failed to install N skills" even when
+every skill is on disk (an upstream defect). Do not re-run the install on that
+message — it clobbers the patches above. Confirm instead:
+
+```bash
+node skills/gandalf/scripts/verify-install.mjs
+```
+
+It walks the repo's `skills/` and compares each one against `~/.agents/skills/`
+file-by-file (line endings normalised), reporting `installed` / `missing` /
+`drift`. Re-run the install only when a skill is genuinely `missing`, then
+`patch-skills.mjs apply`. `install-skills.ps1` runs this check itself.
+
 ## Role → packs
 
 Read this from `packs.json` (`roles` on each entry). Condensed:

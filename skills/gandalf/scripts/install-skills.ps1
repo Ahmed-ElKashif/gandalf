@@ -103,6 +103,20 @@ if (Test-Path $patchScript) {
     $patchFailed = $true
 }
 
+# The upstream installer sometimes prints "Failed to install N skills" even when
+# every skill landed. Confirm the real state before declaring victory.
+$verifyScript = Join-Path $PSScriptRoot 'verify-install.mjs'
+if (Test-Path $verifyScript) {
+    Write-Host "`n=== Verify install ===" -ForegroundColor Green
+    & node $verifyScript
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "    install is incomplete - see above (exit $LASTEXITCODE)" -ForegroundColor Yellow
+        $patchFailed = $true
+    }
+} else {
+    Write-Host "`n    verify-install not found at $verifyScript" -ForegroundColor Yellow
+}
+
 Write-Host "`nDone. The fellowship is armed. Reviewers live in the orchestrator session;"
 Write-Host "headless implementers pick new skills up on their next run."
 
