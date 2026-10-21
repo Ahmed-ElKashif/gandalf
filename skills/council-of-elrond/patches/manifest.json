@@ -32,6 +32,20 @@
       "why": "result.json reported the flags the caller ASKED for, not the ones agy ran with. A read-only run passes `--sandbox --dangerously-skip-permissions` itself, so every read-only lane reported `sandbox: false, dangerouslySkipPermissions: false` while agy ran with both — a reader could not tell what the run was allowed to do. The header's sandbox guarantee was also stated as fact although it was measured on macOS only: on agy 1.4.4 / Windows `--sandbox` confines nothing, and writes persisted inside and outside the workspace. The result now carries `effectivePosture` (the flags, the platform, and whether they were enforced) and `effectiveArgv` (what agy was actually given); the header names the platform each claim was measured on."
     },
     {
+      "id": "opencode-relay-effective-posture",
+      "skill": "opencode-delegate",
+      "pack": "delegate-skills",
+      "tier": "core",
+      "required": true,
+      "scope": "general",
+      "files": ["scripts/relay.mjs"],
+      "patch": "opencode-relay-effective-posture.patch",
+      "upstream": "https://github.com/amElnagdy/delegate-skills",
+      "upstreamCommit": "3aa72d681a79e2a9d09bd9a316353003ae1cb4a7",
+      "upstreamDate": "2026-10-14",
+      "why": "result.json reported `auto: opts.auto` — the REQUESTED flag — but --auto is never passed on a plan (read-only) run, because it would auto-approve the plan agent's ask-gated edit/bash permissions and let a `--read-only` review modify the tree. So a plan run reported `auto: true` while running with no --auto at all. The result now carries `auto` as the EFFECTIVE value (`opts.auto && agent !== 'plan'`), plus `effectivePosture` (auto, agent, plan, requestedAuto) and `effectiveArgv` (what opencode was actually given)."
+    },
+    {
       "id": "debate-review-snapshot-cleanup",
       "skill": "debate-review",
       "pack": "review-skills",

@@ -1,0 +1,30 @@
+diff --git a/scripts/relay.mjs b/scripts/relay.mjs
+index 9189387..47b1fe6 100644
+--- a/scripts/relay.mjs
++++ b/scripts/relay.mjs
+@@ -423,6 +423,9 @@ function buildArgv(opts, version) {
+   // edit/bash permissions and let a "read-only" review modify the tree. A plan run
+   // only reads, so it doesn't need auto-approval anyway.
+   if (opts.auto && opts.agent !== "plan") argv.push("--auto");
++  // Record what opencode was actually given, so result.json carries the ground truth
++  // and not only a derivation of it. (LOCAL PATCH — upstream did not record this.)
++  run.argv = [...argv];
+   // No message argument: the brief is piped on stdin (see dispatchToOpenCode),
+   // which avoids all argv-quoting issues with multi-line, XML-tagged briefs.
+   return argv;
+@@ -461,7 +464,14 @@ function makeResultWriter(opts, version, run) {
+       agent: opts.agent,
+       model: opts.model,
+       variant: opts.variant,
+-      auto: opts.auto,
++      auto: opts.auto && opts.agent !== "plan",
++      effectivePosture: {
++        auto: opts.auto && opts.agent !== "plan",
++        agent: opts.agent,
++        plan: opts.agent === "plan",
++        requestedAuto: opts.auto,
++      },
++      effectiveArgv: run.argv || null,
+       resumed: resuming,
+       resumeLast: opts.resumeLast,
+       opencodeVersion: version,
