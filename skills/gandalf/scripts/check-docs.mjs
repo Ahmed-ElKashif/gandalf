@@ -342,6 +342,32 @@ if (!/--dangerously-skip-permissions/.test(operationsText) || !/mutually exclusi
   pass("operations.md: the read-only relay rule is stated");
 }
 
+// The relay is not the plan's to choose: it is the implementer the cast binds to
+// the lane. A dispatcher that defaults the relay instead of reading the cast
+// sends a lane to a CLI the user never chose — and the relay refuses it at
+// dispatch, after the lane has already burned a worktree.
+
+const castGuard = [
+  [/function readCast\(\)/, "readCast() is not defined"],
+  [/function castRelay\(laneName\)/, "castRelay(laneName) is not defined"],
+  [/relay: l\.relay \|\| castRelay\(l\.lane\) \|\| "opencode"/, "the plan's relay does not fall back to the cast"],
+  [/relayFrom: l\.relay \? "plan" : \(castRelay\(l\.lane\) \? "cast" : "default"\)/, "the relay source is not recorded"],
+];
+const castProblems = castGuard
+  .filter(([pattern]) => !pattern.test(fellowship))
+  .map(([, label]) => label);
+if (castProblems.length) {
+  for (const problem of castProblems) fail(`fellowship.mjs: ${problem}`);
+} else {
+  pass("fellowship.mjs: the relay comes from the cast");
+}
+
+if (!/the cast binds it to/.test(operationsText)) {
+  fail("operations.md: the relay-from-cast rule is not stated");
+} else {
+  pass("operations.md: the relay-from-cast rule is stated");
+}
+
 // ---- report ---------------------------------------------------------------
 
 for (const message of passes) console.log(`✓ ${message}`);

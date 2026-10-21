@@ -216,6 +216,19 @@ Key flags:
 - `--keep-worktrees` is the default for **successful** lanes — their worktree holds the
   diff until you merge it. A worktree is removed only when it is provably clean.
 
+### The relay comes from the cast
+
+A lane's relay is the implementer its fleet config binds it to
+(`~/.config/delegate-skills/config.json`). `fellowship.mjs` reads the cast and walks
+the lane through that relay; a plan does not get to choose. If a plan names a relay
+that contradicts the cast — the cast binds it to a different implementer — the plan is
+refused. The relay itself would refuse it at dispatch time ("fleet lane
+`plan-debate` — agy (use agy-delegate); this relay is opencode"), which is late: the
+lane has already started, burned a worktree, and produced no `result.json`.
+
+`--allow-relay-mismatch` downgrades the refusal to a warning, for the case where the
+config is stale and the plan is right.
+
 ### A read-only lane stays read-only
 
 The dispatcher never passes `--dangerously-skip-permissions` to a read-only lane. The agy

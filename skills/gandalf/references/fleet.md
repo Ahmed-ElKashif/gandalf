@@ -153,6 +153,13 @@ Per lane: `implementer`, `model`, and one dial — `variant` for opencode, the m
 label for agy. Start from `templates/fleet.template.json`; `presets/free-first.json`
 is one example, not a default.
 
+The `implementer` field is also the **relay** that walks the lane: `fellowship.mjs`
+reads this config and dispatches the lane through that CLI. A plan that names a
+different relay is refused before anything runs — the relay would refuse it anyway at
+dispatch time, after the lane had already burned a worktree and produced nothing.
+`--allow-relay-mismatch` downgrades that refusal to a warning for the case where the
+config is stale and the plan is right.
+
 ## Swapping a lane
 
 1. Edit your working copy of the fleet JSON.

@@ -100,3 +100,50 @@ test("a read-only opencode lane is not given --dangerously-skip-permissions", ()
     fx.cleanup();
   }
 });
+
+test("the relay comes from the cast when the plan does not name one", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "plan-debate", brief }],
+    { cast: { "plan-debate": { implementer: "agy" } } },
+  );
+  try {
+    const result = dispatch(fx);
+    assert.equal(result.code, 0, result.stderr);
+    const lane = JSON.parse(result.stdout).lanes.find((l) => l.lane === "plan-debate");
+    assert.equal(lane.relay, "agy");
+    assert.equal(lane.relayFrom, "cast");
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("a plan that contradicts the cast is refused", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "plan-debate", brief, relay: "opencode" }],
+    { cast: { "plan-debate": { implementer: "agy" } } },
+  );
+  try {
+    const result = dispatch(fx);
+    assert.equal(result.code, 2, "the plan must be refused");
+    assert.match(result.stderr, /the cast binds it to "agy"/);
+    assert.doesNotMatch(result.stderr, /this relay is opencode/);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("--allow-relay-mismatch downgrades the contradiction to a warning", () => {
+  const fx = fixture(
+    (brief) => [{ lane: "plan-debate", brief, relay: "opencode" }],
+    { cast: { "plan-debate": { implementer: "agy" } } },
+  );
+  try {
+    const result = dispatch(fx, ["--allow-relay-mismatch"]);
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stderr, /WARNING — the plan contradicts the cast/);
+    const lane = JSON.parse(result.stdout).lanes.find((l) => l.lane === "plan-debate");
+    assert.equal(lane.relay, "opencode");
+  } finally {
+    fx.cleanup();
+  }
+});

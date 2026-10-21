@@ -149,6 +149,7 @@ function parseArgs(argv) {
     plan: null, lanes: null, brief: null, cd: process.cwd(),
     max: 4, worktree: true, keepWorktrees: false, dryRun: false,
     json: false, outDir: null, preambles: null, noPreambles: false,
+    allowRelayMismatch: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -170,6 +171,7 @@ function parseArgs(argv) {
       case "--out-dir": opts.outDir = toPath(next()); break;
       case "--preambles": opts.preambles = toPath(next()); break;
       case "--no-preambles": opts.noPreambles = true; break;
+      case "--allow-relay-mismatch": opts.allowRelayMismatch = true; break;
       case "-h": case "--help": usage(0); break;
       default:
         console.error(`fellowship: unknown argument ${a}`);
@@ -190,6 +192,42 @@ function toPath(p) {
 }
 
 const opts = parseArgs(process.argv.slice(2));
+
+// ---- the cast -------------------------------------------------------------
+// The fleet config is the source of truth: it binds each lane to an implementer
+// (the relay that walks it) and a model. Read it once, up front, because the
+// plan is resolved against it and a plan that contradicts it is refused here
+// rather than at dispatch, after the run has already started.
+
+function readCast() {
+  const cfg = process.env.GANDALF_CONFIG
+    || join(homedir(), ".config", "delegate-skills", "config.json");
+  if (!existsSync(cfg)) return null;
+  try {
+    const raw = JSON.parse(readFileSync(cfg, "utf8"));
+    const lanes = raw.lanes || raw.implementers || null;
+    if (!lanes) return null;
+    const entries = Array.isArray(lanes)
+      ? lanes.map((l) => [l.name || l.lane, l])
+      : Object.entries(lanes);
+    const cast = new Map();
+    for (const [name, entry] of entries) {
+      if (!name) continue;
+      cast.set(name, {
+        implementer: entry?.implementer || entry?.relay || null,
+        model: entry?.model || null,
+      });
+    }
+    return cast;
+  } catch { return null; }
+}
+
+const cast = readCast();
+
+/** The relay the cast binds to this lane. Null when the lane is not cast. */
+function castRelay(laneName) {
+  return cast?.get(laneName)?.implementer || null;
+}
 
 // ---- resolve the plan ------------------------------------------------------
 
@@ -212,7 +250,10 @@ function buildPlan() {
       lanes: raw.lanes.map((l) => ({
         lane: l.lane,
         brief: toPath(l.brief),
-        relay: l.relay || "opencode",
+        // The cast decides which relay walks a lane. A plan may still name one,
+        // but only if it agrees with the cast — see the validation below.
+        relay: l.relay || castRelay(l.lane) || "opencode",
+        relayFrom: l.relay ? "plan" : (castRelay(l.lane) ? "cast" : "default"),
         readOnly: l.readOnly ?? READ_ONLY_LANES.has(l.lane),
         worktree: l.worktree ?? null, // resolved below
         model: l.model || null,
@@ -227,7 +268,9 @@ function buildPlan() {
       runDir: join(opts.cd, ".gandalf", "runs"),
       timeout: "30m",
       lanes: opts.lanes.map((lane) => ({
-        lane, brief: opts.brief, relay: "opencode",
+        lane, brief: opts.brief,
+        relay: castRelay(lane) || "opencode",
+        relayFrom: castRelay(lane) ? "cast" : "default",
         readOnly: READ_ONLY_LANES.has(lane), worktree: null, model: null, variant: null,
       })),
     };
@@ -274,24 +317,33 @@ const WIRE_ROLES = new Set([
   "plan-debate", "review-main", "review-debate", "security-review",
 ]);
 
-function castLanes() {
-  const cfg = process.env.GANDALF_CONFIG
-    || join(homedir(), ".config", "delegate-skills", "config.json");
-  if (!existsSync(cfg)) return null;
-  try {
-    const raw = JSON.parse(readFileSync(cfg, "utf8"));
-    const lanes = raw.lanes || raw.implementers || null;
-    if (!lanes) return null;
-    return new Set(Array.isArray(lanes) ? lanes.map((l) => l.name || l.lane).filter(Boolean) : Object.keys(lanes));
-  } catch { return null; }
-}
-
-const cast = castLanes();
 for (const lane of plan.lanes) {
   if (!WIRE_ROLES.has(lane.lane)) {
     problems.push(`lane "${lane.lane}" is not a gandalf lane (have: ${[...WIRE_ROLES].join(", ")})`);
   } else if (cast && !cast.has(lane.lane)) {
     problems.push(`lane "${lane.lane}" is not cast in the fleet config — cast it, or pick a lane that is`);
+  }
+}
+
+// A plan that names a relay the cast does not bind is refused. The relay itself
+// would refuse it at dispatch ("fleet lane X — agy (use agy-delegate); this relay
+// is opencode"), which is late: the lane has already started, burned a worktree,
+// and produced no result.json. --allow-relay-mismatch downgrades it to a warning
+// for the case where the cast is wrong and the plan is right.
+const relayMismatches = [];
+for (const lane of plan.lanes) {
+  if (lane.relayFrom !== "plan") continue;
+  const casted = castRelay(lane.lane);
+  if (cast && casted && casted !== lane.relay) {
+    relayMismatches.push(`lane ${lane.lane}: the plan says relay "${lane.relay}" but the cast binds it to "${casted}"`);
+  }
+}
+if (relayMismatches.length) {
+  if (opts.allowRelayMismatch) {
+    console.error("fellowship: WARNING — the plan contradicts the cast:");
+    for (const m of relayMismatches) console.error(`  - ${m}`);
+  } else {
+    for (const m of relayMismatches) problems.push(m);
   }
 }
 
@@ -419,6 +471,7 @@ if (opts.dryRun) {
   const shown = runners.map((r) => ({
     lane: r.lane.lane,
     relay: r.lane.relay,
+    relayFrom: r.lane.relayFrom,
     readOnly: r.lane.readOnly,
     worktree: r.worktreeDir,
     cwd: r.cwd,
@@ -436,7 +489,7 @@ if (opts.dryRun) {
     console.log(`runs    ${outDir}`);
     console.log(`max     ${opts.max} concurrent\n`);
     for (const s of shown) {
-      console.log(`[${s.lane}] relay=${s.relay} readOnly=${s.readOnly}`);
+      console.log(`[${s.lane}] relay=${s.relay} (${s.relayFrom}) readOnly=${s.readOnly}`);
       console.log(`  cwd      ${s.cwd}`);
       if (s.worktree) console.log(`  worktree ${s.worktree}`);
       if (s.preamble) console.log(`  preamble would write ${s.preamble}`);
@@ -464,6 +517,7 @@ const manifest = {
   lanes: runners.map((r) => ({
     lane: r.lane.lane,
     relay: r.lane.relay,
+    relayFrom: r.lane.relayFrom,
     model: r.lane.model,
     variant: r.lane.variant,
     readOnly: r.lane.readOnly,
