@@ -15,6 +15,7 @@ diff that makes an installed copy correct. If upstream takes the fix, delete the
 | `agy-relay-effective-posture` | `delegate-skills` → `agy-delegate` | core | report the flags agy actually ran with, and stop claiming a sandbox that is not enforced on Windows |
 | `opencode-relay-effective-posture` | `delegate-skills` → `opencode-delegate` | core | report the autonomy opencode actually ran with (--auto is never passed on a plan run) |
 | `delegate-setup-opencode-auth-probe` | `delegate-skills` → `delegate-setup` | core | probe opencode auth with JSON, not a TTY-only `●` bullet that never matches when piped |
+| `delegate-setup-probe-timeout` | `delegate-skills` → `delegate-setup` | core | a per-probe timeout and one retry, so a slow probe is not read as a broken CLI |
 | `debate-review-snapshot-cleanup` | `review-skills` → `debate-review` | core | retry a Windows `EPERM` on snapshot cleanup instead of masking the real error |
 | `debate-review-readonly-violation-fails` | `review-skills` → `debate-review` | core | turn a read-only violation WARNING into a hard failure |
 | `ui-review-loop-version-and-video` | `ui-review-loop` | optional | separate the version floor from the verified contract; skip a recorder that cannot finalize; resolve the native CLI on Windows |

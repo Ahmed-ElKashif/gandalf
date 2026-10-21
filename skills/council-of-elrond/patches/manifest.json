@@ -60,6 +60,20 @@
       "why": "The opencode auth probe matched a \"●\" row in `opencode auth list`, but that bullet only exists in the TTY-rendered list. The probe runs piped, where the CLI prints plain columns with no bullet — so every opencode install was reported as NOT authenticated, whatever the real state. Measured on opencode 2.1.1: the piped output is `OpenCode Console  Personal  stored` and the old pattern never matches. The patch asks for `opencode auth list --format json` and treats a provider with a non-empty `connections` array as a live credential."
     },
     {
+      "id": "delegate-setup-probe-timeout",
+      "skill": "delegate-setup",
+      "pack": "delegate-skills",
+      "tier": "core",
+      "required": true,
+      "scope": "general",
+      "files": ["scripts/discover.mjs"],
+      "patch": "delegate-setup-probe-timeout.patch",
+      "upstream": "https://github.com/amElnagdy/delegate-skills",
+      "upstreamCommit": "3aa72d681a79e2a9d09bd9a316353003ae1cb4a7",
+      "upstreamDate": "2026-10-14",
+      "why": "Every probe shared one 10s timeout and no retry, so a slow probe was indistinguishable from a broken CLI: a cold CLI doing first-run setup, a network hiccup or an antivirus scan could push one probe past the limit and make discovery report a working implementer as missing, unauthenticated or model-less. The patch gives each probe its own budget (version 10s, auth 20s, models 30s) and retries ONCE when a probe times out — a timeout is the one failure a retry can fix, while a missing binary or a non-zero exit is the answer."
+    },
+    {
       "id": "debate-review-snapshot-cleanup",
       "skill": "debate-review",
       "pack": "review-skills",

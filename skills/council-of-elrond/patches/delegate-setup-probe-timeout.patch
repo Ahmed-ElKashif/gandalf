@@ -1,0 +1,169 @@
+diff --git a/scripts/discover.mjs b/scripts/discover.mjs
+index 17eceda..0599bf5 100644
+--- a/scripts/discover.mjs
++++ b/scripts/discover.mjs
+@@ -21,7 +21,15 @@ import { homedir } from "node:os";
+ import { delimiter, isAbsolute, join, resolve, sep } from "node:path";
+ import { IMPLEMENTERS } from "./implementers.mjs";
+ 
+-const PROBE_TIMEOUT_MS = 10_000;
++// LOCAL PATCH (not upstream). One timeout for every probe is one timeout that is
++// wrong for most of them: a version check is quick, a model listing is not, and an
++// auth check can sit on the network. The single 10s budget either killed the slow
++// probes or left the fast ones hanging.
++const PROBE_TIMEOUTS = {
++  version: 10_000,
++  auth: 20_000,
++  models: 30_000,
++};
+ 
+ const HELP = `discover.mjs — probe PATH for installed implementer CLIs
+ 
+@@ -164,12 +172,35 @@ function quoteForCmd(value) {
+   return `"${value}"`;
+ }
+ 
+-function runProbe(launch, args, useShell) {
++/** LOCAL PATCH (not upstream). True when a probe ran out of time, not when it was refused. */
++function isTimeout(error) {
++  if (!error) return false;
++  return error.code === "ETIMEDOUT" || error.signal === "SIGTERM";
++}
++
++/**
++ * LOCAL PATCH (not upstream). Run a probe, once more if it ran out of time.
++ *
++ * A timeout is the one probe failure a retry can fix: a cold CLI doing first-run
++ * setup, a network hiccup, an antivirus scan — any of them can push a single
++ * probe past its budget while the CLI itself is fine. Everything else (a missing
++ * binary, a non-zero exit) is the answer, not a hiccup.
++ */
++function withRetryThrow(attempt) {
++  try {
++    return attempt();
++  } catch (error) {
++    if (!isTimeout(error)) throw error;
++    return attempt();
++  }
++}
++
++function runProbe(launch, args, useShell, timeoutMs = PROBE_TIMEOUTS.version) {
+   const probeArgs = [...launch.prefixArgs, ...args];
+   const command = useShell ? [quoteForCmd(launch.command), ...probeArgs].join(" ") : launch.command;
+   const options = {
+     encoding: "utf8",
+-    timeout: PROBE_TIMEOUT_MS,
++    timeout: timeoutMs,
+     stdio: ["pipe", "pipe", "pipe"],
+     shell: useShell,
+   };
+@@ -182,42 +213,52 @@ function stripAnsi(text) {
+ }
+ 
+ /** spawnSync, not runProbe: success-path stderr matters (codex prints login status there). */
+-function captureProbe(launch, args, useShell) {
+-  try {
+-    const probeArgs = [...launch.prefixArgs, ...args];
+-    const command = useShell ? [quoteForCmd(launch.command), ...probeArgs].join(" ") : launch.command;
+-    const options = {
+-      encoding: "utf8",
+-      timeout: PROBE_TIMEOUT_MS,
+-      stdio: ["pipe", "pipe", "pipe"],
+-      shell: useShell,
+-    };
+-    const result = useShell
+-      ? spawnSync(command, options)
+-      : spawnSync(command, probeArgs, options);
+-    const stdout = result.stdout || "";
+-    return {
+-      ok: !result.error && result.status === 0,
+-      stdout,
+-      output: stripAnsi(`${stdout}${result.stderr || ""}`),
+-    };
+-  } catch {
+-    return { ok: false, stdout: "", output: "" };
+-  }
++function captureProbe(launch, args, useShell, timeoutMs = PROBE_TIMEOUTS.auth) {
++  // LOCAL PATCH (not upstream): a timed-out probe gets one more try. See withRetryThrow.
++  const attempt = () => {
++    try {
++      const probeArgs = [...launch.prefixArgs, ...args];
++      const command = useShell ? [quoteForCmd(launch.command), ...probeArgs].join(" ") : launch.command;
++      const options = {
++        encoding: "utf8",
++        timeout: timeoutMs,
++        stdio: ["pipe", "pipe", "pipe"],
++        shell: useShell,
++      };
++      const result = useShell
++        ? spawnSync(command, options)
++        : spawnSync(command, probeArgs, options);
++      const stdout = result.stdout || "";
++      return {
++        ok: !result.error && result.status === 0,
++        stdout,
++        output: stripAnsi(`${stdout}${result.stderr || ""}`),
++        timedOut: Boolean(result.error && result.error.code === "ETIMEDOUT"),
++      };
++    } catch {
++      return { ok: false, stdout: "", output: "", timedOut: false };
++    }
++  };
++  const first = attempt();
++  if (!first.timedOut) return first;
++  const second = attempt();
++  return second.timedOut ? first : second;
+ }
+ 
+ function probeVersion(impl, launch) {
+   const useShell = needsWindowsShell(impl, launch);
+   const tryArgs = (versionArgs) => {
++    let raw;
+     try {
+-      const raw = runProbe(launch, versionArgs, useShell);
+-      const firstLine = raw.trim().split(/\r?\n/, 1)[0].trim();
+-      if (!firstLine) return null;
+-      if (impl.versionFormat !== "colon-prefix") return firstLine;
+-      return /^([^:\s]+):/.exec(firstLine)?.[1] ?? firstLine;
++      // LOCAL PATCH (not upstream): one retry when the probe times out.
++      raw = withRetryThrow(() => runProbe(launch, versionArgs, useShell, PROBE_TIMEOUTS.version));
+     } catch {
+       return null;
+     }
++    const firstLine = raw.trim().split(/\r?\n/, 1)[0].trim();
++    if (!firstLine) return null;
++    if (impl.versionFormat !== "colon-prefix") return firstLine;
++    return /^([^:\s]+):/.exec(firstLine)?.[1] ?? firstLine;
+   };
+   let version = tryArgs(impl.versionArgs);
+   if (version === null && impl.versionFallbackArgs) {
+@@ -242,7 +283,9 @@ function probeAuth(impl, launch, captured = null) {
+ 
+   if (jsonField) {
+     try {
+-      return readAuthField(runProbe(launch, args, useShell), jsonField);
++      // LOCAL PATCH (not upstream): one retry when the probe times out.
++      const raw = withRetryThrow(() => runProbe(launch, args, useShell, PROBE_TIMEOUTS.auth));
++      return readAuthField(raw, jsonField);
+     } catch (error) {
+       const combined = `${error.stdout || ""}${error.stderr || ""}`;
+       if (combined.trim()) {
+@@ -347,7 +390,8 @@ function probeModels(impl, launch, captured = null) {
+     return captured.ok ? parseModelLines(captured.stdout, probe.format) : failedModels();
+   }
+   try {
+-    const raw = runProbe(launch, probe.args, needsWindowsShell(impl, launch));
++    // LOCAL PATCH (not upstream): one retry when the probe times out.
++    const raw = withRetryThrow(() => runProbe(launch, probe.args, needsWindowsShell(impl, launch), PROBE_TIMEOUTS.models));
+     return parseModelLines(raw, probe.format);
+   } catch {
+     return failedModels();
+@@ -448,7 +492,7 @@ function main(argv) {
+       modelArgs &&
+       authArgs.length === modelArgs.length &&
+       authArgs.every((arg, index) => arg === modelArgs[index])
+-        ? captureProbe(launch, authArgs, needsWindowsShell(impl, launch))
++        ? captureProbe(launch, authArgs, needsWindowsShell(impl, launch), PROBE_TIMEOUTS.auth)
+         : null;
+     const entry = {
+       key: impl.key,
