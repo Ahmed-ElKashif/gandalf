@@ -91,8 +91,8 @@ Source: <https://www.anthropic.com/engineering/multi-agent-research-system>
   premium fleet.
 - **The plan debate is conditional.** It is a judgment call from a rubric, not a
   user question and not a mandatory ceremony on a one-line chore.
-- **Free-first is a first-class cast.** The cheapest working fleet is the default
-  preset, not an apology. Strength goes where the road is dark.
+- **Free-first is a first-class example.** The cheapest working fleet is a valid
+  starting point, not an apology. Strength goes where the road is dark.
 - **The landing report is the only checkpoint.** Autonomy is real: no "are you sure?"
   between dispatch and landing except a genuine blocker.
 

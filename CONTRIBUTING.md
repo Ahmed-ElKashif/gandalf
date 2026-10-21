@@ -25,32 +25,42 @@ CI runs both on every push and pull request. On a fork, set `GANDALF_REPO_URL` t
 ## Repository layout
 
 ```text
-assets/                      README images
-skills/
-├── gandalf/
-│   ├── SKILL.md
-│   ├── roles.json           canonical role registry
-│   ├── references/          fleet · loadouts · plan-debate · operations · gates · intake · landing-report · fellowship · prior-art
-│   ├── presets/             free-first.json
-│   ├── templates/           fleet.template.json · preambles.example.md
-│   └── scripts/             fellowship.mjs · preambles.mjs · check-docs.mjs · install-skills.ps1 · tests
-├── council-of-elrond/
-│   ├── SKILL.md
-│   ├── packs.json           install manifest and credits source
-│   ├── NOTICE.md            attribution for the vendored engine and patches
-│   ├── patches/             verified diffs for installed third-party skills
-│   ├── references/          casting · arming
-│   ├── presets/             free-first.json
-│   ├── templates/           preambles.example.md (byte-identical to gandalf's)
-│   └── scripts/             vendored engine + patch-skills.mjs (apply · check)
-├── palantir/                UI evidence child skill
-│   ├── SKILL.md
-│   ├── references/          webmcp · timeline · coverage-audit · limits · formats
-│   ├── scripts/             round.mjs
-│   └── assets/              recorder.js
-└── celebrimbor/             DESIGN.md child skill
-    └── SKILL.md
+.
+├── .github/workflows/check.yml   CI: npm test + npm run check
+├── .gitattributes
+├── .gitignore
+├── assets/                       README images
+├── skills/
+│   ├── gandalf/
+│   │   ├── SKILL.md
+│   │   ├── roles.json           canonical role registry
+│   │   ├── references/          fleet · loadouts · frontend-formula · orchestrator-rules · plan-debate · operations · gates · intake · landing-report · fellowship · prior-art
+│   │   ├── presets/             free-first.json (example, not a default)
+│   │   ├── templates/           fleet.template.json · preambles.example.md
+│   │   └── scripts/             fellowship.mjs · preambles.mjs · check-docs.mjs · install-skills.ps1 · tests
+│   ├── council-of-elrond/
+│   │   ├── SKILL.md
+│   │   ├── packs.json           install manifest and credits source
+│   │   ├── NOTICE.md            attribution for the vendored engine and patches
+│   │   ├── patches/             verified diffs + manifest
+│   │   ├── references/          casting · arming
+│   │   ├── presets/             free-first.json (example, not a default)
+│   │   ├── templates/           preambles.example.md (byte-identical to gandalf's)
+│   │   └── scripts/             vendored engine + patch-skills.mjs (apply · check)
+│   ├── palantir/                UI evidence skill
+│   │   ├── SKILL.md
+│   │   ├── references/          webmcp · timeline · coverage-audit · limits · formats
+│   │   ├── scripts/             round.mjs
+│   │   └── assets/              recorder.js
+│   └── celebrimbor/             DESIGN.md skill
+│       └── SKILL.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── package.json
+└── README.md
 ```
+
+All four skills are first-party and install together. `palantir` and `celebrimbor` are part of the loop, not optional extras.
 
 ## Changing a role
 

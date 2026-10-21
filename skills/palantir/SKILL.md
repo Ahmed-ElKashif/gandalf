@@ -1,6 +1,9 @@
 ---
 name: palantir
 description: "Verify a running web app through its own agent-facing surface instead of photographing it — discover and invoke WebMCP tools the page registers, assert each result against the DOM timeline and the network HAR, and sweep a maintained inventory of views and controls so every declared element is exercised. Use after ANY change that touches web UI, when an agent must prove a page works rather than look at it, when driving a site through agent-browser or Chrome, for a DOM-dynamics pass, or when a flow must be verified without a screenshot loop. Vision is a deliberate final pass on appearance only, never the mechanism. Prefer this over screenshot-based UI review and over driving agent-browser ad hoc."
+license: MIT
+metadata:
+  version: 1.0.0
 ---
 
 # Palantír — see the site as it is, through its own tools

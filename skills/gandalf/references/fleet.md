@@ -76,7 +76,7 @@ out, never commits — so the loop never changes when you re-cast a role.
 
 ## Example fleets
 
-### free-first (the shipped preset)
+### free-first (example: no paid seats)
 
 `presets/free-first.json` — free OpenCode models + Antigravity for the dark roads:
 
@@ -150,7 +150,8 @@ roads locally, keeping one cloud seat for hard days:
 ```
 
 Per lane: `implementer`, `model`, and one dial — `variant` for opencode, the model
-label for agy. Start from `presets/free-first.json` or `templates/fleet.template.json`.
+label for agy. Start from `templates/fleet.template.json`; `presets/free-first.json`
+is one example, not a default.
 
 ## Swapping a lane
 
@@ -163,8 +164,8 @@ label for agy. Start from `presets/free-first.json` or `templates/fleet.template
 ## Budget policy
 
 - **Cast to budget.** Strength where the road is dark, cheap where it's flat. The
-  shipped preset happens to be free-first (that's how gandalf was born) — the
-  method stays identical on a subscription or local fleet.
+  free-first preset is one example (that's how gandalf was born); the method stays
+  identical on a subscription or local fleet.
 - **Premium, deliberately.** Keep the `complex` seat and the judging seats
   (`plan-debate`, `review-debate`) reserved. One deep pass on a frontier model beats
   ten retries on a cheap one.

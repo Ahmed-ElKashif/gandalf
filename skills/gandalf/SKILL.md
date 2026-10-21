@@ -66,8 +66,9 @@ any CLI + model onto a role: `references/fleet.md`.
 What each role carries, with install commands: `references/loadouts.md`.
 The plan gate itself: `references/plan-debate.md`.
 
-Shipped preset: **`presets/free-first.json`** — the zero-budget starter this skill
-was born from (free opencode lanes + agy Opus for the dark roads).
+Example preset: **`presets/free-first.json`** — a zero-budget starting point this
+skill was born from (free opencode lanes + agy Opus for the dark roads), not a
+required default.
 
 ## Setting up the fleet
 
@@ -86,8 +87,9 @@ was born from (free opencode lanes + agy Opus for the dark roads).
    (it runs the patch step too).
 3. **Cast the fellowship** — fastest: run the **`council-of-elrond`** skill (same
    repo): one question, the full fellowship cast, config + preambles written and
-   verified for you. Manually: start from `presets/free-first.json` or
-   `templates/fleet.template.json`, map each role to an implementer + model, then:
+   verified for you. Manually: start from `templates/fleet.template.json`; the
+   free-first preset is one example, not a default. Map each role to an
+   implementer + model, then:
    `node <delegate-setup>/scripts/config.mjs validate <file>` →
    `node <delegate-setup>/scripts/config.mjs write --scope global <file>` →
    `node <delegate-setup>/scripts/config.mjs load` to confirm.

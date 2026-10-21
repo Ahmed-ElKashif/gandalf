@@ -47,13 +47,13 @@ a single hobbit is dispatched (gandalf skill, `references/plan-debate.md`).
    Claude models; codex reaches OpenAI models; cursor reaches its own model list.
 2. Write one line per role: `implementer` + `model` (+ a dial only where the
    implementer supports it).
-3. Free-first posture: **use `presets/free-first.json` verbatim.** Subscription /
-   local postures: every model id comes from the user's answer or discovery —
-   never invented.
+3. No-paid-seats posture: **start from `presets/free-first.json` and adapt every
+   model id to discovery.** Subscription / local postures: every model id comes
+   from the user's answer or discovery — never invented.
 
 ## The postures
 
-### Free-first (the shipped preset)
+### No paid seats (example preset)
 
 | Role | Member | Why |
 |---|---|---|
@@ -93,11 +93,12 @@ discovery), one cloud seat kept for `complex`. Same method, different members.
 ## Basis and the addendum rule
 
 Every lane carries a Basis: `preset` / `your answer` / `my opinion` /
-`schema requirement`. In free-first mode the preset legitimately sets the dials.
-In the other postures the user's answer gates the dials — opinions of your own
-go in an addendum *after* the table ("Want my picks for effort levels? Say the
-word."), never pre-filled into the JSON they are about to approve. An
-unanswered question shrinks the map; it never licenses a substitution.
+`schema requirement`. In the no-paid-seats example, the preset supplies a
+starting point; adapt the members and dials to discovery. In every posture the
+user's answer gates the final cast — opinions of your own go in an addendum
+*after* the table ("Want my picks for effort levels? Say the word."), never
+pre-filled into the JSON they are about to approve. An unanswered question
+shrinks the map; it never licenses a substitution.
 
 ## Budget policy
 

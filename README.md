@@ -25,16 +25,17 @@ One model cannot be great at everything. A drawer full of good skills helps noth
 - **Equip** — give each lane the skills it needs: UI craft, debugging discipline, guards, design language.
 - **Review** — run the gates, block broken UI with `qa`, debate the diff with a second model, and return one landing report. Nothing is committed without you.
 
-Four skills ship together:
+Four first-party skills ship together:
 
-| Skill | Job |
-|---|---|
-| [`council-of-elrond`](skills/council-of-elrond/SKILL.md) | **Setup.** Arms the packs, discovers your CLIs, casts the fleet, writes config and preambles, verifies the cast. |
-| [`gandalf`](skills/gandalf/SKILL.md) | **Daily use.** Intake, plan gate, dispatch, guards, review, landing report. Never writes the code. |
-| [`palantir`](skills/palantir/SKILL.md) | **UI evidence.** The page's own WebMCP tools, the DOM timeline, and the network HAR. The `qa` behaviour gate. |
-| [`celebrimbor`](skills/celebrimbor/SKILL.md) | **Design language.** Forges or adopts a validated `DESIGN.md` before `ui` dispatches. |
+**`council-of-elrond` — setup.** Arms the packs, discovers your CLIs and models, casts the eleven roles, writes the fleet config and lane preambles, and verifies the cast. Run it once per machine.
 
-`palantir` and `celebrimbor` are first-party child skills. The default install includes all four; if you install selectively, include them.
+**`gandalf` — daily use.** Runs the loop: intake, plan gate, dispatch, guards, review debate, landing report. It never writes the code or commits.
+
+**`palantir` — UI evidence.** Drives the page's own WebMCP tools, asserts each result against the DOM timeline and network HAR, and sweeps the UI inventory. `qa` uses it as the behaviour gate; no screenshots required.
+
+**`celebrimbor` — design language.** Forges or adopts a validated `DESIGN.md` before the `ui` lane dispatches, so every surface follows one design language.
+
+All four install together by default. If you install selectively, include all four: the loop calls `celebrimbor` before UI work and `palantir` at the UI gate.
 
 ## Quickstart
 
@@ -113,7 +114,7 @@ flowchart LR
   R -->|holds| DI
   R -->|re-plan| P
   DI --> H[Implementer walks]
-  H --> G[Gates + guards]
+  H --> G[Gates + guards<br/>palantir on UI]
   G -->|bounce once| H
   G -->|pass| V[Review debate]
   V --> L[Landing report]
@@ -124,16 +125,7 @@ A **relay** is the headless CLI runner. A **bounce** is one retry with findings.
 
 Every relay follows the same contract: self-contained brief in; structured report and a not-yet-committed diff out; **never commits**.
 
-Four rules the loop enforces:
-
-| Rule | The quote |
-|---|---|
-| Gates before landing. | *"You shall not pass."* |
-| Smallest change that works. | *"Even the smallest person can change the course of the future."* |
-| Two failed attempts → escalate. | *"Fly, you fools!"* |
-| Evidence before claims. | *"The wise speak only of what they know."* |
-
-More detail: [`gates.md`](skills/gandalf/references/gates.md), [`plan-debate.md`](skills/gandalf/references/plan-debate.md), [`operations.md`](skills/gandalf/references/operations.md).
+More detail: [`gates.md`](skills/gandalf/references/gates.md), [`plan-debate.md`](skills/gandalf/references/plan-debate.md), [`operations.md`](skills/gandalf/references/operations.md), [`orchestrator-rules.md`](skills/gandalf/references/orchestrator-rules.md).
 
 ## The fleet
 
@@ -163,34 +155,28 @@ Full casting profiles and what each role carries: [`fleet.md`](skills/gandalf/re
 
 ## Cast your own
 
-**Free-first is the shipped default, not the only path.** The same loop runs on free models, paid subscriptions, local GPUs, or a mix. If you already pay for Claude Code, Codex, opencode Go, Cursor, Warp, or another agent, cast those seats where they earn their keep.
+There is **no required preset**. The council discovers what you already have — paid subscriptions, free tiers, local models, or a mix — and proposes a cast for your approval. The examples below are starting points, not defaults.
 
-| Posture | Good for | Example cast |
+| Example | Good for | Example cast |
 |---|---|---|
-| **Free-first** (shipped) | no paid API key; free tiers and an existing Antigravity seat | free OpenCode models for the flat roads; agy Opus for `complex`, `plan-debate`, `review-debate` |
+| **No paid seats** | free tiers and an existing Antigravity seat | free OpenCode models for the flat roads; agy Opus for `complex`, `plan-debate`, `review-debate`; adapt the ids to what discovery reports |
 | **Subscription / paid** | Claude Code, Codex, opencode Go, Cursor, Warp, or another paid agent | your paid model for `feature` / `ui` / `complex`; a cheaper model for `chores`; free or local for `qa` |
 | **Local + mixed** | a GPU on the desk, or privacy-sensitive work | Ollama / LM Studio via opencode for flat roads; one cloud seat for `complex` |
 
+One honest trade in a zero-budget cast: `complex`, `plan-debate`, and `review-debate` may ride the same Antigravity Opus seat, so the two debate judges share a model. That is a legitimate budget choice, not a second opinion. If you pay for a second strong model, cast it.
+
 The dispatch relays currently cover `opencode`, `agy` (Antigravity), `claude`, `codex`, `cursor`, and `warp`. The skills CLI can install into more agents than that; check [`delegate-skills`](https://github.com/amElnagdy/delegate-skills) for the latest list.
 
-### The shipped free-first preset
+### Cast the seats you already pay for
 
-[`presets/free-first.json`](skills/gandalf/presets/free-first.json) uses free OpenCode models for the flat roads and an Antigravity Opus seat for `complex`, `plan-debate`, and `review-debate`.
-
-The honest trade: in that preset `complex`, `plan-debate`, and `review-debate` all ride the same Antigravity Opus seat, so the two debate judges share a model. That is a legitimate budget choice, but it is not a second opinion. If you pay for a second strong model, cast it.
-
-Full cast and dials: [`fleet.md`](skills/gandalf/references/fleet.md). The preset itself: [`free-first.json`](skills/gandalf/presets/free-first.json).
-
-### If you already pay for an agent
-
-Don't downgrade to free models just because the preset is free-first. Cast the seats you pay for where they matter:
+Do not downgrade to free models just because a free example exists. Cast the seats you pay for where they matter:
 
 - `feature`, `ui`, `complex` — your strongest paid model (Claude Code, Codex, opencode Go, or another relay).
 - `bugfix` — a reasoning-heavy paid model if you have one.
 - `chores` — the cheapest capable model, free or paid.
 - `qa` — text-only is fine; `qa-look` is the only seat that needs vision.
 
-Mix freely: paid `feature` / `complex`, free `chores` / `qa`, local `ui`. A one-line change moves a role; nothing else in the loop notices. The reverse works too: start free, then swap in paid seats as your budget allows.
+Mix freely: paid `feature` / `complex`, free `chores` / `qa`, local `ui`. A one-line change moves a role; nothing else in the loop notices. Start with what you have, then swap seats as your budget allows.
 
 <div align="center">
 <img src="assets/gandalf-the-white.jpg" alt="Gandalf the White with staff" width="360">
@@ -202,7 +188,7 @@ Mix freely: paid `feature` / `complex`, free `chores` / `qa`, local `ui`. A one-
 
 1. **Arm** — read [`packs.json`](skills/council-of-elrond/packs.json), show the delta (missing packs, tier, licence, roles served), take one approval, install in file order, apply verified patches.
 2. **Discover** — probe PATH for implementer CLIs, auth status, and models.
-3. **Cast** — ask one budget question, propose the lanes, show the full cast, take one approval, write the fleet config (`delegate-fleet.v1`).
+3. **Cast** — ask what you already have (paid seats, free tiers, local models), propose the lanes, show the full cast, take one approval, write the fleet config (`delegate-fleet.v1`).
 4. **Verify** — write the lane preambles, resolve every lane, run the reviewer health check.
 
 `delegate-skills` is installed first, always: it ships the relays and the `delegate-setup` engine. The council ships its own copy of the discovery/validation engine, so **casting** needs no extra package; **dispatch** still uses the `delegate-skills` relays.
@@ -212,6 +198,25 @@ Three upstream fixes are carried as verified patches and applied after installs.
 <div align="center">
 <img src="assets/the-white-rider.webp" alt="The White Rider at dawn" width="460">
 </div>
+
+## Repository shape
+
+```text
+.
+├── .github/workflows/check.yml   CI: npm test + npm run check
+├── assets/                       README images
+├── skills/
+│   ├── council-of-elrond/        setup: arm → discover → cast → verify
+│   ├── gandalf/                  daily loop: intake → plan → dispatch → review → land
+│   ├── palantir/                 UI evidence: WebMCP + DOM timeline + HAR
+│   └── celebrimbor/              DESIGN.md forge
+├── CONTRIBUTING.md               full layout, role changes, patch policy
+├── LICENSE
+├── package.json
+└── README.md
+```
+
+Full layout and contribution rules: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Verify and contribute
 
@@ -247,8 +252,8 @@ The fellowship stands on other people's work. This table mirrors [`packs.json`](
 | [`DietrichGebert/ponytail`](https://github.com/DietrichGebert/ponytail) | MIT | the smallest-change ladder |
 | [`obra/superpowers`](https://github.com/obra/superpowers) | MIT | writing-plans, systematic-debugging, review discipline |
 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | MIT | grilling, to-tickets, code-review, domain-modeling |
-| [`palantir`](skills/palantir/) | MIT | our UI evidence child skill: WebMCP + DOM timeline + HAR |
-| [`celebrimbor`](skills/celebrimbor/) | MIT | our `DESIGN.md` forge child skill |
+| [`palantir`](skills/palantir/) | MIT | first-party UI evidence skill: WebMCP + DOM timeline + HAR |
+| [`celebrimbor`](skills/celebrimbor/) | MIT | first-party `DESIGN.md` forge |
 | [`amelnagdy/ui-review-loop`](https://github.com/amelnagdy/ui-review-loop) | Apache-2.0 | optional video loop; the recorder ancestor |
 | [`vercel-labs/agent-browser`](https://github.com/vercel-labs/agent-browser) | unverified | the browser backend `palantir` drives |
 | [`emilkowalski/skills`](https://github.com/emilkowalski/skills) | MIT | interface craft and motion |
@@ -270,10 +275,7 @@ The fellowship stands on other people's work. This table mirrors [`packs.json`](
 
 </details>
 
-Also:
-
-- **Models** — the free-first preset rides OpenCode's free tier and Antigravity (Google).
-- **Images** — Gandalf stills © Warner Bros. / New Line, included as a fan homage.
+**Images** — Gandalf stills © Warner Bros. / New Line, included as a fan homage.
 
 ## License
 

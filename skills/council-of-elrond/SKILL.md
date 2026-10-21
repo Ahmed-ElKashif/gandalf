@@ -49,10 +49,10 @@ One concept: **lanes**. A lane names an implementer and optional dials.
 5. Ask scope unless already clear: **global** (all projects) vs **this repo only**.
    Never create a project file just because cwd is a git repo. No git repo →
    default global and say so.
-6. Never invent model identifiers. Use what discovery reported, the shipped
+6. Never invent model identifiers. Use what discovery reported, the example
    preset, or the user's own words.
 7. Every lane carries a **Basis**: `preset` / `your answer` / `my opinion` /
-   `schema requirement`. Beyond the preset, your own dial picks are offered as an
+   `schema requirement`. Beyond the example, your own dial picks are offered as an
    addendum after the table — never pre-filled silently.
 8. The eleven roles are the standard cast: eight that **walk** (`feature`/Aragorn,
    `ui`/Galadriel, `bugfix`/Elrond, `devops`/Gimli, `chores`/Samwise, `complex`/
@@ -153,10 +153,8 @@ node "<skill-dir>/scripts/config.mjs" load --cwd "$PWD"
 
 Ask **one** question, then stop asking:
 
-> How should I cast? **(1) Free-first** — the zero-budget fellowship: free
-> OpenCode models plus Antigravity for the dark roads. **(2) Your subscriptions** —
-> tell me what you pay for and what to spare, and I'll cast against those.
-> **(3) Local + mixed** — tell me your provider or GPU setup.
+> What do you already have? Tell me your paid subscriptions, free tiers, local
+> models, or "nothing paid" — I'll cast against discovery and your answer.
 
 `plan-debate` is not a second question: cast it by default when a suitable model is
 available, show it in the lane table, and note the fallback only if the user asks for
@@ -164,11 +162,11 @@ a leaner fleet.
 
 ### 5. Cast
 
-- **(1) Free-first** → `presets/free-first.json`, cast **verbatim**
-  (Basis: `preset`).
-- **(2) Subscriptions** → map profiles to the installed, authenticated CLIs the
+- **No paid seats** → start from `presets/free-first.json`, then adapt every model
+  id to what discovery actually reported (Basis: `preset` + `your answer`).
+- **Subscriptions** → map profiles to the installed, authenticated CLIs the
   user named; every dial from their answer (Basis: `your answer`).
-- **(3) Local + mixed** → opencode lanes onto the user's local provider;
+- **Local + mixed** → opencode lanes onto the user's local provider;
   keep one cloud seat for `complex`. Model ids from discovery or the user —
   never invented.
 
@@ -226,18 +224,19 @@ node ~/.agents/skills/debate-review/scripts/review-pr.mjs --check
 - Hand off: *"The fellowship is mustered. For daily operations, load the
   `gandalf` skill."*
 
-## Worked example (posture 1 — free-first)
+## Worked example (no paid seats)
 
 > **User:** set up my fleet, I'm broke.
 >
 > **Council:** arm → `packs.json` read; the delta is the UI tier plus Ponytail;
 > one table shown, one approval, `delegate-skills` installed first.
 > → discover → "opencode and agy detected; opencode models reported."
-> → load → nothing configured. → posture 1 → propose `presets/free-first.json`
-> verbatim (Basis: `preset`), with `plan-debate` cast onto agy Opus as the standard
-> third judge (no extra question).
+> → load → nothing configured. → no paid seats → start from
+> `presets/free-first.json`, adapt it to the discovered opencode and agy models
+> (Basis: `preset` + `your answer`), with `plan-debate` cast onto agy Opus as the
+> standard third judge (no extra question).
 > → show table + JSON → approve → validate → `write --scope global` → load ok.
-> → preambles adapted to the free-first members, shown, written.
+> → preambles adapted to the selected members, shown, written.
 > → pulse: `review-main ok · review-debate ok`.
 > → *"The fellowship is mustered. Load `$gandalf` for daily ops."*
 

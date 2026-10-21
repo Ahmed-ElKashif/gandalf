@@ -1,7 +1,7 @@
 # Operations — dispatch recipes, flags, troubleshooting
 
 The recipes below use the **opencode** and **agy** relays because those carry the
-shipped `free-first` preset. Every relay in `amElnagdy/delegate-skills` (opencode,
+example `free-first` cast. Every relay in `amElnagdy/delegate-skills` (opencode,
 agy, claude, codex, cursor, warp) follows the same contract — self-contained brief
 in; structured report + touched files out; never commits — so the loop is identical
 whichever relay a role is cast onto. Canonical flags for the other relays live in
@@ -265,5 +265,5 @@ node ~/.agents/skills/debate-review/scripts/review-pr.mjs --check
 ```
 
 Starts both reviewer lanes on a one-line read-only brief and prints `ok` / `FAIL`
-per lane (measured: ~7s and ~8s on the free-first preset). Run it after casting
+per lane (measured: ~7s and ~8s on the example free-first cast). Run it after casting
 reviewers, or whenever reviews feel off.

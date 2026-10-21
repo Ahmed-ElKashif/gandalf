@@ -1,6 +1,9 @@
 ---
 name: celebrimbor
 description: Forge or choose a project's DESIGN.md so UI work stays consistent. Use when a project has no DESIGN.md, the existing one is stale, the user asks to pick/align a design system, or before dispatching the `ui` lane. Draws from VoltAgent/awesome-design-md (brand DESIGN.md library), ui-ux-pro-max (industry reasoning), create-design-md / stitch extract-design-md (extraction), and impeccable (context + normalize). Not a fleet role — a skill the `ui` lane and orchestrator invoke.
+license: MIT
+metadata:
+  version: 1.0.0
 ---
 
 # Celebrimbor — the DESIGN.md forge
