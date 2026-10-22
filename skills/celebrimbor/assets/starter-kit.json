@@ -1,0 +1,84 @@
+{
+  "name": "Celebrimbor House",
+  "description": "The floor under every forge: a warm-neutral ground, one deep accent, and a five-step type scale that works when nothing else is known. Adapt it; never ship it unchanged without saying so.",
+  "origin": "Written for this skill. No third-party data. MIT, same licence as the skill.",
+  "useWhen": [
+    "The user named a brand we have no palette for and gave no colours.",
+    "No sector matched and no direction could be composed.",
+    "The product is internal tooling where the system must disappear, not perform."
+  ],
+  "frontmatter": {
+    "version": "alpha",
+    "name": "<product name>",
+    "description": "<one line: what this product is and who it serves>",
+    "colors": {
+      "primary": "#1f4b3f",
+      "background": "#f7f6f3",
+      "surface": "#ffffff",
+      "foreground": "#16150f",
+      "muted": "#6b6862",
+      "border": "#e3e1db",
+      "accent": "#1f4b3f",
+      "accent-foreground": "#ffffff"
+    },
+    "typography": {
+      "display": {
+        "fontFamily": "Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif",
+        "fontSize": "44px",
+        "fontWeight": "600",
+        "lineHeight": "1.1",
+        "letterSpacing": "-0.02em"
+      },
+      "heading": {
+        "fontFamily": "Inter, Segoe UI, system-ui, -apple-system, Helvetica Neue, Arial, sans-serif",
+        "fontSize": "28px",
+        "fontWeight": "600",
+        "lineHeight": "1.2",
+        "letterSpacing": "-0.015em"
+      },
+      "body": {
+        "fontFamily": "Inter, Segoe UI, system-ui, -apple-system, Helvetica Neue, Arial, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "lineHeight": "1.6"
+      },
+      "label": {
+        "fontFamily": "Inter, Segoe UI, system-ui, -apple-system, Helvetica Neue, Arial, sans-serif",
+        "fontSize": "14px",
+        "fontWeight": "500",
+        "lineHeight": "1.4"
+      },
+      "caption": {
+        "fontFamily": "Inter, Segoe UI, system-ui, -apple-system, Helvetica Neue, Arial, sans-serif",
+        "fontSize": "13px",
+        "fontWeight": "400",
+        "lineHeight": "1.4"
+      }
+    },
+    "rounded": {
+      "base": "10px"
+    },
+    "spacing": {
+      "base": "4px",
+      "xs": "8px",
+      "sm": "12px",
+      "md": "16px",
+      "lg": "24px",
+      "xl": "32px",
+      "2xl": "48px",
+      "3xl": "64px"
+    }
+  },
+  "rules": [
+    "Body text is 16px or larger; nothing is set below 13px.",
+    "One accent. It marks the single most important thing on a screen and nothing else.",
+    "Surfaces are separated by a hairline or by space, never by both.",
+    "Radius is one value on the whole product unless a surface argues otherwise.",
+    "Colour never carries meaning alone; every coloured state also changes weight, shape or text."
+  ],
+  "contrast": {
+    "foregroundOnBackground": "15.4:1",
+    "mutedOnBackground": "5.2:1",
+    "accentForegroundOnAccent": "9.1:1"
+  }
+}

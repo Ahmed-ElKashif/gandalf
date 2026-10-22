@@ -82,10 +82,27 @@ the user confirms shared understanding.**
 
 Only if the task touches UI. Otherwise skip this step entirely.
 
-Check the project root for `DESIGN.md`.
+Survey the project root — **once**, with `celebrimbor`'s survey. Never look for
+a `DESIGN.md` anywhere else: not the parent directory, not a sibling, not a
+previous working folder.
+
+```bash
+node <celebrimbor>/scripts/survey.mjs --root <project root>
+```
+
+It reports whether a `DESIGN.md` is there, the stack, the token sources, and
+the recommended mode. A missing `DESIGN.md` is an answer: **greenfield**, not a
+reason to keep looking.
 
 - **Present** → read it. Its tokens and patterns win over generic taste skills.
   Cite it in the brief and in the landing report.
+- **Present, and the code has moved on** → offer the **audit**: `celebrimbor`
+  diffs the document against the code and updates the document (never the
+  code). One question, with three options:
+  > *"The `DESIGN.md` may be out of date. (a) audit it now, (b) use it as it
+  > is, (c) forge a fresh one."*
+  - (a) → invoke **`celebrimbor`** in audit mode and wait for the drift report.
+  - (b) or (c) → record which one in the landing report.
 - **Missing** → ask exactly one question, with three options:
   > *"No `DESIGN.md` found. (a) forge one with celebrimbor, (b) adopt a brand
   > reference, (c) proceed without — `qa-look` will be skipped."*
@@ -93,6 +110,11 @@ Check the project root for `DESIGN.md`.
     `qa-look` runs against it; `ui` reads it first.
   - (c) → proceed, but record in the landing report that no design language was
     judged against.
+
+Either way, `celebrimbor` ends at its gate: the file is only forged when it
+passes `celebrimbor`'s validation. An unvalidated `DESIGN.md` is not a design
+language.
+
 
 ## 4. Scope — the last question
 

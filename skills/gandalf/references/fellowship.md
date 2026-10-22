@@ -37,8 +37,11 @@ carries the Ring.
   all-rounder."*
 - **In dispatch**, use the wire name: `--lane feature`.
 - **In the fleet config**, the keys are wire names (`"feature": { ... }`).
-- **In preambles**, the heading is `## Aragorn — feature (full-stack)`, so a
-  reader sees both and the injector can still match on the wire name.
+- **In preambles**, the heading is `## Aragorn — feature *(station: `aragorn`)*`
+  (a station lane) or `## Elrond — bugfix (debugging) *(example cast: …)*`
+  (a casting lane), so a reader sees both and the injector can still match on
+  the wire name. The station lanes' text is generated from the station skills
+  by `build-preambles.mjs`.
 - **In the council**, the casting table shows the LOTR name beside the wire name.
 
 ## Why two names

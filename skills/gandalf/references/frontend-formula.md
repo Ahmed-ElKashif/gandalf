@@ -1,56 +1,21 @@
-# The frontend formula (the `ui` role)
+# The frontend formula — moved
 
-The `ui` role exists because frontend work is judged by humans looking at pixels.
-The formula is surface-aware: never load every UI skill into one dispatch — one art
-direction per run.
+This file used to carry the `ui` role's formula: the design system first, the
+per-surface recipes, the arbitrations, the done-gate. It was written for the
+orchestrator to hand a lane. The crafts now travel with the lane itself.
 
-## Always on
+**The formula is now the `galadriel` station** — read `skills/galadriel/`.
 
-- `emil-design-eng` — the craft rules (spacing, hierarchy, polish, the invisible
-  details that make software feel great).
-- The project's `DESIGN.md` — read it first. Its tokens and patterns win over generic
-  taste. If absent, forge one with `celebrimbor` and flag that in the report.
-- The evidence gate lives with the **`qa` lane** (`palantír`), and appearance with
-  **`qa-look`**, not here: `ui` builds, `qa` verifies. Read that section before claiming done.
-
-`ui-review-loop` is tier `optional` and installed only on request. It is the
-human-watches-video loop, not part of this formula and not the gate.
-
-## Per surface
-
-| Surface | Load |
+| It used to say | Where it lives now |
 |---|---|
-| Public / marketing pages | `design-taste-frontend` |
-| App UI (dashboards, settings) | `DESIGN.md` tokens first; `baseline-ui` / `improve-ui` for cleanup passes |
-| New visual identity (explicitly requested) | `frontend-design` |
-| Motion | `animate` family by default; `gsap-*` only when GSAP is already a dependency |
-| React / Next specifics | `vercel-react-best-practices`; transitions → `vercel-react-view-transitions` |
-| Mobile web / PWA feel | `mobile-native` |
+| Design system first; forge or audit with `celebrimbor` | `galadriel/SKILL.md` — the one rule |
+| Per-surface recipes and arbitrations | `skills/galadriel/references/surface.md` |
+| Real content in every slot — no wireframe | `skills/galadriel/references/content.md` |
+| Declared states + the WebMCP tool file | `skills/galadriel/references/states.md` |
+| The done-gate: `qa` verifies, `qa-look` judges | `skills/galadriel/references/handoff.md` |
+| The build-time traps (Tailwind v4, grids, gaps) | `skills/galadriel/references/build.md` |
 
-## Arbitrations
-
-- One art direction per dispatch. `design-taste-frontend` is the only direction the
-  taste pack ships; if you also install one of its classics siblings from
-  `Leonxlnx/taste-skill-classics` (`minimalist-ui`, `high-end-visual-design`), treat
-  them as opposing directions and never load two in the same dispatch.
-- `frontend-design` only for identity asks, not for routine screens.
-- GSAP skills only when GSAP is in the deps; otherwise `animate` (CSS / WAAPI /
-  Framer Motion).
-- One art direction per dispatch; the project's `DESIGN.md` outranks everything else.
-
-## The done-gate
-
-A UI change is not done until the **`qa` lane** returns a clean round on it — `ui` does
-not certify its own work. `qa` runs `palantír`, which verifies through the page's own
-WebMCP tools plus the DOM timeline and the network HAR. Screenshots alone don't count, and
-neither does a green command exit: the round's `meta.json` says which streams landed, and
-a round with no timeline and no tool call is a failed round no matter how clean the console
-looked.
-
-**Appearance is a second, separate witness (`qa-look`).** The seat that judges behaviour
-must not also be the only seat that can see — otherwise the green check proves nothing.
-`qa-look` judges the rendered states against `DESIGN.md`, and its verdict is **advisory**:
-it can flag appearance, but it can never overturn `qa`. A beautiful broken page still fails.
-
-`ui` provides the gated WebMCP tool file the round consumes; `qa` never writes it.
-A red round is a **bounce to `ui`** — same lane, same session, findings as the brief.
+Nothing in the rules changed; only the address did. The lane block in
+`galadriel/SKILL.md` (marker `gandalf:lane-block wire="ui"`) is the source the
+preambles are generated from — this stub exists so the links above keep
+resolving and the move stays visible.

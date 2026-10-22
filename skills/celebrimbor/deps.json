@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "description": "What celebrimbor can use, what it needs, and what it does without them. The doctor reads this file; the forge reads the fallbacks.",
+  "selfContained": {
+    "dataset": "assets/taste",
+    "note": "The research dataset and the composer ship inside the skill. No install is needed to forge a design system.",
+    "composer": "scripts/compose.mjs",
+    "offlineGate": "scripts/validate.mjs"
+  },
+  "dependencies": [
+    {
+      "id": "design-md-cli",
+      "kind": "npm",
+      "package": "@google/design.md",
+      "install": "npm i -g @google/design.md",
+      "installWindows": "npm i -g @google/design.md",
+      "detect": [
+        "node_modules/.bin/design.md",
+        "node_modules/.bin/design.md.cmd",
+        "$HOME/node_modules/.bin/design.md",
+        "$HOME/node_modules/.bin/design.md.cmd"
+      ],
+      "unlocks": "the real lint/export gate: `design.md lint` (JSON findings) and `design.md export --format <target>` (token families). Also `design.md diff` for the audit mode.",
+      "required": false,
+      "fallback": "scripts/validate.mjs runs the built-in structural checks offline. Weaker evidence: it proves the document's shape, not that the exporter accepts it. Say so in the report."
+    },
+    {
+      "id": "create-design-md",
+      "kind": "skill",
+      "install": "npx skills add ibelick/ui-skills --skill create-design-md",
+      "detect": ["$HOME/.agents/skills/create-design-md", "$HOME/.claude/skills/create-design-md"],
+      "unlocks": "the reference extraction pipeline (role -> value -> source -> scope -> recurrence -> confidence) and its URL-mode reconstruction method.",
+      "required": false,
+      "fallback": "references/extract.md carries the same pipeline, distilled. Nothing is lost but the live tool."
+    },
+    {
+      "id": "impeccable",
+      "kind": "skill",
+      "install": "npx skills add pbakaus/impeccable",
+      "detect": ["$HOME/.agents/skills/impeccable", "$HOME/.claude/skills/impeccable"],
+      "unlocks": "context teaching and `normalize` for a design system whose structure drifted, not just its tokens.",
+      "required": false,
+      "fallback": "references/normalize.md does the realign with the diff gate in validate.mjs."
+    },
+    {
+      "id": "ui-ux-pro-max",
+      "kind": "skill",
+      "install": "npx skills add nextlevelbuilder/ui-ux-pro-max-skill",
+      "detect": ["$HOME/.agents/skills/ui-ux-pro-max", "$HOME/.claude/skills/ui-ux-pro-max"],
+      "unlocks": "industry reasoning for a greenfield system: palette and type choices argued from the product category.",
+      "required": false,
+      "fallback": "assets/starter-kit.json plus references/generate.md."
+    },
+    {
+      "id": "awesome-design-md",
+      "kind": "skill",
+      "install": "npx skills add VoltAgent/awesome-agent-skills",
+      "detect": ["$HOME/.agents/skills/awesome-design-md", "$HOME/.claude/skills/awesome-design-md"],
+      "unlocks": "adopting a known brand's design language (Adopt mode) from a library of real DESIGN.md files.",
+      "required": false,
+      "fallback": "references/adopt.md works from a URL or a described brand, but the library is faster and exact."
+    },
+    {
+      "id": "stitch-skills",
+      "kind": "skill",
+      "install": "npx skills add google-labs-code/stitch-skills",
+      "detect": ["$HOME/.agents/skills/stitch-skills", "$HOME/.claude/skills/stitch-skills"],
+      "unlocks": "Stitch output and `extract-design-md` for a codebase that has no tokens of its own.",
+      "required": false,
+      "fallback": "references/extract.md covers repository extraction."
+    }
+  ]
+}

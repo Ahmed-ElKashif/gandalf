@@ -25,17 +25,37 @@ One model cannot be great at everything. A drawer full of good skills helps noth
 - **Equip** — give each lane the skills it needs: UI craft, debugging discipline, guards, design language.
 - **Review** — run the gates, block broken UI with `qa`, debate the diff with a second model, and return one landing report. Nothing is committed without you.
 
-Four first-party skills ship together:
+Eight first-party skills ship together — **two seats that run the loop, five stations that own a craft, and the engine the verification station drives**:
 
 **`council-of-elrond` — setup.** Arms the packs, discovers your CLIs and models, casts the eleven roles, writes the fleet config and lane preambles, and verifies the cast. Run it once per machine.
 
 **`gandalf` — daily use.** Runs the loop: intake, plan gate, dispatch, guards, review debate, landing report. It never writes the code or commits.
 
-**`palantir` — UI evidence.** Drives the page's own WebMCP tools, asserts each result against the DOM timeline and network HAR, and sweeps the UI inventory. `qa` uses it as the behaviour gate; no screenshots required.
+**`palantir` — the evidence engine.** Drives the page's own WebMCP tools, asserts each result against the DOM timeline and network HAR, and sweeps the UI inventory. No screenshots in the mechanism — vision is one deliberate final pass.
 
-**`celebrimbor` — design language.** Forges or adopts a validated `DESIGN.md` before the `ui` lane dispatches, so every surface follows one design language.
+**`celebrimbor` — the design-system station.** Forges, adopts, extracts, or audits a validated `DESIGN.md` so every surface follows one design language. **Self-contained**: a trimmed research dataset (20 art directions, 56 palettes, 44 type systems, 185 section blueprints, 13 app kinds), a composer, and an offline validation gate ship inside the skill — no install needed. The document is his deliverable; the page is not.
 
-All four install together by default. If you install selectively, include all four: the loop calls `celebrimbor` before UI work and `palantir` at the UI gate.
+**`galadriel` — the interface station** (`ui` lane). Builds the rendered surface the design system governs: reads `DESIGN.md` first, one art direction per dispatch, real content in every slot, the four states declared ahead of the gate, and the WebMCP tool file provided for `qa` to consume.
+
+**`aragorn` — the feature station** (`feature` lane). Server-side only: API routes, data model, auth, integrations, expand/contract migrations, background jobs. Never writes a rendered surface — on full-stack work the seam splits, and he delivers the typed contract and API-state inventory the interface station builds against.
+
+**`haldir` — the behaviour gate** (`qa` lane). Runs the palantír round: `meta.json` opened first, non-empty assertions, every claim carrying its stream and artifact; never authors the tool file; structured evidence, never pixels. A red round bounces to the `ui` lane — once.
+
+**`legolas` — the appearance judge** (`qa-look` lane). Judges the rendered states against `DESIGN.md`, from the round's screenshots. Advisory by definition — it can never overturn behaviour evidence, and *"I would have chosen a different blue"* is not a finding.
+
+### Which skill gets the task
+
+| The task | The station | The lane |
+|---|---|---|
+| Forge / adopt / audit the design system (`DESIGN.md`) | `celebrimbor` | — (used by `ui`; judges read his work) |
+| Build the rendered surface — pages, screens, components | `galadriel` | `ui` |
+| Build the server side — API, data model, auth, migrations, jobs | `aragorn` | `feature` |
+| Prove the page works — behaviour, evidence | `haldir` driving `palantir` | `qa` |
+| Judge how the page looks against `DESIGN.md` | `legolas` | `qa-look` |
+| Run the whole loop, any of the above all together | `gandalf` | — (never dispatched) |
+| Set the fleet up on a machine | `council-of-elrond` | — |
+
+All eight install together by default. If you install selectively: **the loop needs the seats and its stations; a craft needs its station alone.** Each station works standalone — its own references are the floor, the packs it may load are the ceiling.
 
 ## Quickstart
 
@@ -137,8 +157,8 @@ Eleven roles: **eight walk, three judge.** LOTR names are display aliases; wire 
 
 | LOTR name | Wire name | Job |
 |---|---|---|
-| **Aragorn** | `feature` | full-stack feature work |
-| **Galadriel** | `ui` | frontend and design craft |
+| **Aragorn** | `feature` | server-side feature work: API, data, auth, migrations |
+| **Galadriel** | `ui` | the interface: pages, screens, components under the design system |
 | **Elrond** | `bugfix` | debugging and root-cause work |
 | **Gimli** | `devops` | CI, CD, infrastructure |
 | **Samwise** | `chores` | maintenance and mechanical edits |
@@ -208,8 +228,12 @@ Three upstream fixes are carried as verified patches and applied after installs.
 ├── skills/
 │   ├── council-of-elrond/        setup: arm → discover → cast → verify
 │   ├── gandalf/                  daily loop: intake → plan → dispatch → review → land
-│   ├── palantir/                 UI evidence: WebMCP + DOM timeline + HAR
-│   └── celebrimbor/              DESIGN.md forge
+│   ├── palantir/                 the evidence engine: WebMCP + DOM timeline + HAR
+│   ├── celebrimbor/              the design-system station
+│   ├── galadriel/                the interface station (`ui`)
+│   ├── aragorn/                  the feature station (`feature`, server-side only)
+│   ├── haldir/                   the `qa` door-warden
+│   └── legolas/                  the `qa-look` appearance judge
 ├── CONTRIBUTING.md               full layout, role changes, patch policy
 ├── LICENSE
 ├── package.json
@@ -237,12 +261,17 @@ Both run in CI. If you change a role, a doc, a template, or a pack, run both bef
 
 The loop follows patterns that hold up in production: orchestrator-workers and evaluator-optimizer (Anthropic), owned prompts, context, and control flow plus small focused agents (12-factor agents), and explicit guardrails with human checkpoints (OpenAI). The mapping — and what gandalf deliberately does differently — is in [`prior-art.md`](skills/gandalf/references/prior-art.md).
 
+## Roadmap
+
+- **`debate-review` as a GitHub bot.** The same two-lane diff debate, driven by PR events instead of a session. Deliberately later: the stations it reviews shipped first ([ADR-0001](docs/adr/0001-stations-not-seats.md)), the CLI underneath is proven, and a bot's own failure mode — a noise budget — deserves its own design pass.
+- **More stations, never more seats.** The seats are casting; adding a station means adding a craft that works alone, not an eleventh description of a model and a budget.
+
 ## Credits
 
 The fellowship stands on other people's work. This table mirrors [`packs.json`](skills/council-of-elrond/packs.json), the same file the council arms from: every installable pack is credited, nothing else is, and the order is install order. `unverified` means the licence has not been checked yet — a to-do, not a claim.
 
 <details>
-<summary>All 26 packs, in install order</summary>
+<summary>All 31 packs, in install order</summary>
 
 | Pack | Licence | Why it is here |
 |---|---|---|
@@ -253,7 +282,12 @@ The fellowship stands on other people's work. This table mirrors [`packs.json`](
 | [`obra/superpowers`](https://github.com/obra/superpowers) | MIT | writing-plans, systematic-debugging, review discipline |
 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | MIT | grilling, to-tickets, code-review, domain-modeling |
 | [`palantir`](skills/palantir/) | MIT | first-party UI evidence skill: WebMCP + DOM timeline + HAR |
-| [`celebrimbor`](skills/celebrimbor/) | MIT | first-party `DESIGN.md` forge |
+| [`celebrimbor`](skills/celebrimbor/) | MIT | first-party `DESIGN.md` forge — the design-system station, self-contained |
+| [`galadriel`](skills/galadriel/) | MIT | first-party interface station — builds the rendered surface the document governs |
+| [`aragorn`](skills/aragorn/) | MIT | first-party feature station — server-side only: API, data, auth, migrations |
+| [`haldir`](skills/haldir/) | MIT | first-party `qa` station — runs the palantír round with the rules that keep it honest |
+| [`legolas`](skills/legolas/) | MIT | first-party `qa-look` station — appearance judged against `DESIGN.md`, advisory only |
+| [`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) | Apache-2.0 | the DESIGN.md linter and exporter — celebrimbor's gate |
 | [`amelnagdy/ui-review-loop`](https://github.com/amelnagdy/ui-review-loop) | Apache-2.0 | optional video loop; the recorder ancestor |
 | [`vercel-labs/agent-browser`](https://github.com/vercel-labs/agent-browser) | unverified | the browser backend `palantir` drives |
 | [`emilkowalski/skills`](https://github.com/emilkowalski/skills) | MIT | interface craft and motion |
@@ -266,8 +300,8 @@ The fellowship stands on other people's work. This table mirrors [`packs.json`](
 | [`prisma/skills`](https://github.com/prisma/skills) | unverified | Prisma projects |
 | [`mongodb/agent-skills`](https://github.com/mongodb/agent-skills) | unverified | MongoDB schema and query work |
 | [`kadajett/agent-nestjs-skills`](https://github.com/kadajett/agent-nestjs-skills) | unverified | NestJS backends |
-| [`wshobson/agents`](https://github.com/wshobson/agents) | MIT | Next.js, Tailwind, TypeScript, and Actions patterns |
-| [`shadcn-ui/ui`](https://github.com/shadcn-ui/ui) | unverified | shadcn component work |
+| [`wshobson/agents`](https://github.com/wshobson/agents) | MIT | Next.js / Tailwind / TypeScript / Actions patterns, loaded per skill: `ui` takes the framework kit, `feature` only the types, `devops` the Actions templates |
+| [`shadcn-ui/ui`](https://github.com/shadcn-ui/ui) | unverified | shadcn component work — the `ui` station's kit |
 | [`langchain-ai/langchain-skills`](https://github.com/langchain-ai/langchain-skills) | unverified | LangChain / LangGraph projects |
 | [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills) | MIT | CI/CD for the `devops` lane |
 | [`github/awesome-copilot`](https://github.com/github/awesome-copilot) | MIT | GitHub Actions hardening |

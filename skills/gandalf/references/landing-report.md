@@ -22,7 +22,7 @@ memory and not from the lane's final message.
 
 ## Session 0 (intake)
 - Fleet: <cast source — preset / global / project>
-- Design language: <DESIGN.md path | forged by celebrimbor | none — qa-look skipped>
+- Design language: <DESIGN.md path | forged by celebrimbor | audited by celebrimbor — n findings | none — qa-look skipped>
 - Landing preference: commit / push / PR
 - Complexity: <complex | not complex> — <one-line reason>
 - Plan debate: held | skipped — <reason>

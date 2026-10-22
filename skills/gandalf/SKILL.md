@@ -42,7 +42,7 @@ Eight that **walk**, three that **judge**:
 | LOTR name | Wire name | What it needs | Carries |
 |---|---|---|---|
 | **Aragorn** | `feature` | the strongest all-round coder you can afford | stack packs + Ponytail |
-| **Galadriel** | `ui` | good with visuals and long horizons | craft + DESIGN.md (forge with `celebrimbor` if missing) + taste/motion menu |
+| **Galadriel** | `ui` | good with visuals and long horizons | craft + DESIGN.md (forge or audit with `celebrimbor`) + taste/motion menu |
 | **Elrond** | `bugfix` | reasoning-heavy, disciplined | systematic-debugging + regression tests |
 | **Gimli** | `devops` | fast, deterministic edits | CI/CD packs + workflow hardening |
 | **Samwise** | `chores` | cheap, steady | pre-commit setup + refactor planning |
@@ -101,6 +101,9 @@ required default.
    dropping the loadout — and so does a preambles file that has fallen behind the
    template, which is reported, never rewritten. Each composed brief carries a
    stamp naming the source file and its hash, so a run records the loadout it used.
+   The template is generated (`scripts/build-preambles.mjs`) from the station
+   skills' lane blocks plus `templates/preambles-casting.md` — faintly stale
+   means re-run the generator, and editing the wording means editing the source.
 5. **Loadouts** — install the per-role skill packs (`scripts/install-skills.ps1` for
    the full batch, or role by role from `references/loadouts.md`).
 
@@ -116,8 +119,9 @@ dispatch brief. Summary:
 2. **Grill the build** — invoke `grilling` + `domain-modeling`; write
    `GLOSSARY.md` (and ADRs when earned). `grill-with-docs` is the optional
    user-invoked wrapper.
-3. **Design language** (UI only) — `DESIGN.md` present, or choose: celebrimbor /
-   adopt a brand / proceed without.
+3. **Design language** (UI only) — survey the project root once with
+   `celebrimbor`. Present → read it; stale → offer its audit mode; missing →
+   choose: forge / adopt a brand / proceed without.
 4. **Scope** — commit, push, or PR.
 5. **Complexity** — Gandalf decides (rubric in `references/plan-debate.md`);
    Radagast is not automatic.
@@ -214,7 +218,7 @@ yourself. The essentials:
 | `references/orchestrator-rules.md` | **The law of the orchestrator** — prime directives, review order, verdict, merge order, failure modes |
 | `references/fleet.md` | The roles, casting guide, example fleets, dials, budgets |
 | `references/loadouts.md` | The premium skill set per role + every install command |
-| `references/frontend-formula.md` | The `ui` lane formula and its arbitrations |
+| `references/frontend-formula.md` | Superseded — the `ui` lane's method is now the `galadriel` station (`skills/galadriel/`) |
 | `references/plan-debate.md` | Gate 1: the plan debate protocol (Gandalf ⇄ Radagast) |
 | `references/operations.md` | Dispatch recipes, flags, bouncing, troubleshooting |
 | `references/gates.md` | Guard pipeline, three-way verdict, bounce, review flow, done criteria |

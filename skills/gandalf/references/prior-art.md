@@ -43,7 +43,11 @@ first-class capability.
 
 In gandalf:
 
-- the role prompts live in `templates/preambles.example.md`, not in a black box;
+- the role text lives with its owner, not in a black box: the four craft
+  lanes carry theirs in the station skills' lane blocks
+  (`skills/{aragorn,galadriel,haldir,legolas}/SKILL.md`), the casting lanes in
+  `templates/preambles-casting.md`, and `build-preambles.mjs` generates
+  `preambles.example.md` from both sources;
 - `preambles.mjs` owns the injection, and the unit tests pin it;
 - `fellowship.mjs` owns dispatch, worktrees, and the `run.json` ledger;
 - each lane is small and focused, with a loadout rather than a giant prompt;

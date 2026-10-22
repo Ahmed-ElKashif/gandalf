@@ -63,9 +63,20 @@ foreach ($pack in $manifest.packs) {
     if ($wanted -notcontains $pack.tier) { $skipped += $pack; continue }
 
     $tokens = $pack.install -split '\s+'
+    if ($tokens[0] -eq 'npm') {
+        # An npm package, not a skill: the design.md CLI is the DESIGN.md
+        # linter/exporter. Run it directly - never through npx, which prompts
+        # for install confirmation and blocks forever in a non-interactive shell.
+        Write-Host "==> $($pack.repo)  [$($pack.tier)]  (npm)" -ForegroundColor Cyan
+        & npm @($tokens[1..($tokens.Count - 1)])
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "    pack failed (exit $LASTEXITCODE) - continuing" -ForegroundColor Yellow
+        }
+        continue
+    }
     if ($tokens[0] -ne 'npx') {
-        # Packs that ship WITH this repo (palantir, celebrimbor) have no npx command.
-        # Say so plainly rather than reporting a failure: the skill is already here.
+        # Packs that ship WITH this repo (the five stations and the engine) have no npx
+        # command. Say so plainly rather than reporting a failure: the skill is already here.
         Write-Host "    $($pack.repo): ships with this repo - $($pack.install)" -ForegroundColor DarkGray
         continue
     }

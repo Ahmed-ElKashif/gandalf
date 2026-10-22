@@ -26,7 +26,9 @@ its loadout, even on a plain dispatch.
 - Bounces go through the relay `--session` path: the preamble is already in that
   session's context, so do not re-inject.
 - If no preambles file exists, the script warns and dispatches raw briefs. That is
-  a degraded run — generate the file from `templates/preambles.example.md` first.
+  a degraded run — generate the file from `templates/preambles.example.md` first
+(or regenerate it with `node skills/gandalf/scripts/build-preambles.mjs` after
+editing a station's lane block).
 - A lane block that is missing also warns; the global rules still travel, but the
   role loadout does not.
 - **Every composed brief carries a provenance stamp** — the source file and a

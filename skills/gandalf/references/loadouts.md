@@ -44,7 +44,11 @@ a relay: they are the skills the orchestrator runs in its own session.
 model-invocable but must be **named** by Gandalf in the flow — naming them is the
 automatic part; Gandalf never asks the user for permission to run a guard.
 
-## Aragorn — feature (full-stack) *(wire name: `feature`)*
+## Aragorn — feature (server-side) *(wire name: `feature`)*
+
+API, data model, auth, integrations, migrations, jobs. **He does not write a
+rendered surface** — any interface is the `ui` station's work (`galadriel`
+ships with this repo), which is why the UI skills below left his belt.
 
 Stack packs — install the ones your repos actually use:
 
@@ -54,15 +58,20 @@ Stack packs — install the ones your repos actually use:
 | Prisma | `npx skills add prisma/skills -g -y` |
 | MongoDB | `npx skills add mongodb/agent-skills -g -y` |
 | NestJS | `npx skills add kadajett/agent-nestjs-skills -g -y` |
-| Next.js · Tailwind · TypeScript · GH Actions templates | `npx skills add wshobson/agents -g -y -s nextjs-app-router-patterns tailwind-design-system typescript-advanced-types github-actions-templates` |
-| shadcn | `npx skills add shadcn-ui/ui -g -y` |
+| TypeScript (from `wshobson/agents`) | `npx skills add wshobson/agents -g -y -s typescript-advanced-types` — the **only** skill from this pack he loads: its `nextjs-app-router-patterns` and `tailwind-design-system` are interface skills (the `ui` station's belt), and `github-actions-templates` is the `devops` lane's |
 | LangChain / LangGraph | `npx skills add langchain-ai/langchain-skills -g -y` |
-| React perf + view transitions | `npx skills add vercel-labs/agent-skills -g -y` |
 
 Plus the discipline pair (also `bugfix`): `systematic-debugging` and
 `verification-before-completion` when things break mid-task.
 
-## Galadriel — ui (design craft) *(wire name: `ui`)*
+## Galadriel — ui (the interface station) *(wire name: `ui`)*
+
+**Load the `galadriel` skill first** — it ships with this repo
+(`skills/galadriel/`) and *is* the method: design system first, one art
+direction per dispatch, real content in every slot, declared states, the WebMCP
+tool file, preflight, hand-off. The packs below are the ceiling; the per-
+surface recipes in `skills/galadriel/references/surface.md` decide which load —
+never all at once.
 
 | Pack | Command | Highlights |
 |---|---|---|
@@ -70,6 +79,8 @@ Plus the discipline pair (also `bugfix`): `systematic-debugging` and
 | Taste pack (art direction) | `npx skills add Leonxlnx/taste-skill -g -y` | `design-taste-frontend` — one skill; it also audits an existing page before redesigning it. `minimalist-ui` and `high-end-visual-design` moved to `Leonxlnx/taste-skill-classics`, `imagegen-*` to `Leonxlnx/imagegen-skills` — install those separately if you want them. |
 | UI systems kit | `npx skills add ibelick/ui-skills -g -y` | `baseline-ui`, `improve-ui`, `create-design-md`, `fixing-accessibility`, `fixing-metadata`, `fixing-motion-performance`, `component-canvas`, `ui-skills-root` |
 | Frontend-design (identity asks) | `npx skills add anthropics/skills -g -y -s frontend-design` | `frontend-design` |
+| React / Next specifics | `npx skills add vercel-labs/agent-skills -g -y` | `vercel-react-best-practices`, `vercel-react-view-transitions` |
+| shadcn + Next.js / Tailwind | `npx skills add shadcn-ui/ui -g -y` · `npx skills add wshobson/agents -g -y -s nextjs-app-router-patterns tailwind-design-system` | `shadcn`, the app-router patterns, the Tailwind design system — interface skills that used to sit in the feature lane's belt |
 | DESIGN.md forge | ships with this repo (`skills/celebrimbor/`) | `celebrimbor` — forge or pick the project's `DESIGN.md` before `ui` dispatch; draws on `VoltAgent/awesome-design-md`, `ui-ux-pro-max`, and extractors when they are installed |
 | GSAP (only when GSAP is in the deps) | `npx skills add greensock/gsap-skills -g -y` | `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-react`, … |
 

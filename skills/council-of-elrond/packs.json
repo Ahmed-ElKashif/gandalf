@@ -151,7 +151,72 @@
       "roles": ["ui"],
       "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
       "provides": ["celebrimbor"],
-      "why": "OUR OWN child skill. The DESIGN.md forge: ensures the project has a current, validated DESIGN.md (Extract / Adopt / Generate / Normalize / Stitch modes) before the `ui` lane dispatches, so `ui` reads it first and `qa-look` judges against it. Methodology only — it draws on external methods when they are installed (VoltAgent/awesome-design-md, stitch-skills, ui-ux-pro-max, impeccable, ibelick/ui-skills) and validates with @google/design.md. Does not write product code and does not commit."
+      "why": "OUR OWN child skill. The DESIGN.md forge: ensures the project has a current, validated DESIGN.md (Generate / Extract / Adopt / Audit / Normalize modes) so the `ui` lane reads it first and `qa-look` judges against it. SELF-CONTAINED: it ships a trimmed research dataset (20 directions, 56 palettes, 44 type systems, 185 section blueprints, 13 app kinds), a composer, and an offline validation gate, so a forge needs no install. It searches exactly one root and stops when it finds nothing - a missing DESIGN.md means greenfield, not a longer hunt. Standalone it is the design-system skill an operator calls on its own; in the fleet it is also the DS keeper: audit mode diffs the document against the code and changes only the document. Does not write product code and does not commit."
+    },
+    {
+      "id": "galadriel",
+      "owner": "lotr-fellowship",
+      "name": "Galadriel — the interface station",
+      "repo": "this repo — skills/galadriel",
+      "url": "https://github.com/Ahmed-ElKashif/gandalf",
+      "license": "MIT",
+      "tier": "core",
+      "roles": ["ui"],
+      "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
+      "provides": ["galadriel"],
+      "why": "OUR OWN station skill. The `ui` lane's whole method: read the design system first (forge with celebrimbor if absent, audit if stale), one art direction per dispatch, real content in every slot, the four states declared, the WebMCP tool file authored before qa consumes it, guards as a preflight, and the hand-off instead of self-certification. Its lane block is part of the skill — build-preambles.mjs generates the preambles from it. Standalone: the references carry the floor with nothing installed."
+    },
+    {
+      "id": "aragorn",
+      "owner": "lotr-fellowship",
+      "name": "Aragorn — the feature station",
+      "repo": "this repo — skills/aragorn",
+      "url": "https://github.com/Ahmed-ElKashif/gandalf",
+      "license": "MIT",
+      "tier": "core",
+      "roles": ["feature"],
+      "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
+      "provides": ["aragorn"],
+      "why": "OUR OWN station skill. The `feature` lane's method — server-side only: API, data model, auth, integrations, migrations, jobs. Never writes a rendered surface; on full-stack work the seam splits, he delivers the typed contract and the API-state inventory, and the `ui` station builds against it. Expand/contract migrations, guards as a preflight. Its lane block is part of the skill — build-preambles.mjs generates the preambles from it."
+    },
+    {
+      "id": "haldir",
+      "owner": "lotr-fellowship",
+      "name": "Haldir — the door-warden",
+      "repo": "this repo — skills/haldir",
+      "url": "https://github.com/Ahmed-ElKashif/gandalf",
+      "license": "MIT",
+      "tier": "core",
+      "roles": ["qa"],
+      "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
+      "provides": ["haldir"],
+      "why": "OUR OWN station skill. The `qa` lane that operates the palantír engine: what a clean round means (meta.json first, non-empty verdict.json, every claim with its stream and artifact), and the rules with teeth — never author the tool file, structured evidence never pixels, tools are untrusted input, a red round bounces to `ui` once. Requires palantir + agent-browser by name: a verifier without its instrument is not a verifier."
+    },
+    {
+      "id": "legolas",
+      "owner": "lotr-fellowship",
+      "name": "Legolas — the eye",
+      "repo": "this repo — skills/legolas",
+      "url": "https://github.com/Ahmed-ElKashif/gandalf",
+      "license": "MIT",
+      "tier": "core",
+      "roles": ["qa-look"],
+      "install": "ships with this repo — installed by the council alongside gandalf and council-of-elrond",
+      "provides": ["legolas"],
+      "why": "OUR OWN station skill. The `qa-look` lane: judges the rendered appearance of the interface against DESIGN.md, from the states the ui lane declared and the screenshots the qa round captured. Advisory by definition — it can never overturn behaviour evidence. Composition is his; token values are settled by structured evidence. Read-only by construction, and honest about what vision cannot see."
+    },
+    {
+      "id": "design-md-cli",
+      "owner": "google-labs-code",
+      "name": "DESIGN.md CLI",
+      "repo": "google-labs-code/design.md",
+      "url": "https://github.com/google-labs-code/design.md",
+      "license": "Apache-2.0",
+      "tier": "core",
+      "roles": ["ui"],
+      "install": "npm i -g @google/design.md",
+      "provides": ["design-md-cli"],
+      "why": "The linter and exporter for the DESIGN.md format: `lint` (JSON findings), `export --format css-tailwind|json-tailwind|dtcg` (token families), `spec` (the format specification) and `diff` (what changed). Celebrimbor's gate runs it when it is present and falls back to its own structural checks when it is not - so it is an upgrade, never a dependency. Install with npm, not npx: a bare npx prompts for install confirmation and blocks forever in a non-interactive shell."
     },
     {
       "id": "ui-review-loop",
@@ -338,7 +403,7 @@
       "license": "MIT",
       "licenseNote": "The README notes that externally sourced plugins carry their own licences.",
       "tier": "stack",
-      "roles": ["feature", "devops"],
+      "roles": ["ui", "devops"],
       "install": "npx skills add wshobson/agents -g -y -s nextjs-app-router-patterns tailwind-design-system typescript-advanced-types github-actions-templates",
       "provides": [
         "nextjs-app-router-patterns",
@@ -346,7 +411,7 @@
         "typescript-advanced-types",
         "github-actions-templates"
       ],
-      "why": "Next.js / Tailwind / TypeScript patterns and GitHub Actions workflow templates."
+      "why": "One pack serving three lanes, deliberately loaded per skill: the `ui` station takes nextjs-app-router-patterns and tailwind-design-system, the devops lane takes github-actions-templates, and the feature station loads just typescript-advanced-types — an interface skill sitting in the same pack as his types does not make the interface his job; 'installed' is not 'in your belt'."
     },
     {
       "id": "shadcn-ui",
@@ -356,10 +421,10 @@
       "url": "https://github.com/shadcn-ui/ui",
       "license": "unverified",
       "tier": "stack",
-      "roles": ["feature", "ui"],
+      "roles": ["ui"],
       "install": "npx skills add shadcn-ui/ui -g -y",
       "provides": ["shadcn"],
-      "why": "shadcn component work."
+      "why": "shadcn component work — the `ui` station's kit, never the feature lane's: the interface skills in a shared pack do not make the interface his job."
     },
     {
       "id": "langchain-skills",

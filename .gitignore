@@ -2,3 +2,5 @@ Thumbs.db
 desktop.ini
 .DS_Store
 .agent-review/
+logs/
+warp.sqlite*

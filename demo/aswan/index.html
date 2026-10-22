@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Al Madina Coal &amp; Shawarma, Aswan — a skills acceptance-test demo</title>
+<meta name="description" content="An acceptance-test page for Al Madina Coal & Shawarma in Aswan — the place carries it. Not the operator's website: the board and the listing carry the menu, prices and hours.">
+<meta name="color-scheme" content="light">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@700&family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+<!--
+  Every token below is the literal export of demo/aswan/DESIGN.md:
+  design.md export --format css-tailwind DESIGN.md
+  The page is the design system, not a picture of it.
+
+  Weight utilities are spelled out in the markup (font-bold 700, font-semibold
+  600, font-normal 400) and the two families are carried by the semantic
+  classes below — in Tailwind v4 `--font-display` and `--font-weight-display`
+  both generate a `font-display` utility and the family wins, so the collision
+  is never relied on.
+-->
+<style type="text/tailwindcss">
+  @theme {
+    --color-primary: #b31a1c;
+    --color-primary-foreground: #f9f1e4;
+    --color-background: #f9f1e4;
+    --color-surface: #fff9ef;
+    --color-foreground: #211612;
+    --color-muted: #7a6b5b;
+    --color-accent: #f5b553;
+    --color-accent-foreground: #2c1b0a;
+
+    --font-display: "IBM Plex Sans Arabic";
+    --font-heading: "IBM Plex Sans Arabic";
+    --font-body: "Cairo";
+    --font-label: "Cairo";
+
+    --text-display: 64px;
+    --text-heading: 26px;
+    --text-body: 18px;
+    --text-label: 14px;
+
+    --tracking-display: -0.01em;
+    --tracking-heading: -0.01em;
+
+    --font-weight-display: 700;
+    --font-weight-heading: 700;
+    --font-weight-body: 400;
+    --font-weight-label: 600;
+
+    --radius-base: 6px;
+
+    --spacing-base: 8px;
+    --spacing-xs: 12px;
+    --spacing-sm: 16px;
+    --spacing-md: 24px;
+    --spacing-lg: 40px;
+    --spacing-xl: 64px;
+    --spacing-2xl: 96px;
+  }
+</style>
+<style>
+  html { background: #f9f1e4; scroll-behavior: smooth; }
+  body {
+    font-family: "Cairo", system-ui, sans-serif;
+    color: #211612;
+    background: #f9f1e4;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* The families and steps, mapped to the document's tokens. The weights are
+     literal, never the collided `font-display` utility. */
+  .t-display  { font-family: "IBM Plex Sans Arabic", "Cairo", sans-serif; font-weight: 700; font-size: 64px; line-height: 1.05; letter-spacing: -0.01em; }
+  .t-heading  { font-family: "IBM Plex Sans Arabic", "Cairo", sans-serif; font-weight: 700; font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; }
+  .t-body     { font-family: "Cairo", sans-serif; font-weight: 400; font-size: 18px; line-height: 1.55; }
+  .t-label    { font-family: "Cairo", sans-serif; font-weight: 600; font-size: 14px; line-height: 1.45; }
+
+  /* The hero's film-title exception the document sets in Layout prose:
+     clamp(48px, 13vw, 176px) along the bottom edge. */
+  .t-hero-name { font-family: "IBM Plex Sans Arabic", "Cairo", sans-serif; font-weight: 700;
+    font-size: clamp(48px, 13vw, 176px); line-height: 1.05; letter-spacing: -0.01em; }
+  .latin-title { font-family: "Cairo", sans-serif; font-weight: 600;
+    font-size: clamp(14px, 1.5vw, 21px); line-height: 1.45; letter-spacing: .14em; text-transform: uppercase; }
+
+  /* Columns and wraps: `margin-inline: auto`, not a left/right margin pair. */
+  .wrap, .center-ink { margin-inline: auto; }
+  .wrap { max-width: 52ch; min-width: 0; }
+
+  /* Neutral scrims — under the hero's text areas only, never a whole-frame wash. */
+  .scrim-top    { position: absolute; left: 0; right: 0; top: 0; height: 128px;
+    background: linear-gradient(to bottom, rgba(26,10,8,.52), transparent); }
+  .scrim-bottom { position: absolute; left: 0; right: 0; bottom: 0; height: 50%;
+    background: linear-gradient(to top, rgba(26,10,8,.78), rgba(26,10,8,.42) 45%, transparent); }
+
+  .photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid #b31a1c; outline-offset: 2px; border-radius: 4px;
+  }
+  .photo-chip a:focus-visible { outline-color: #f9f1e4; }
+  .btn-primary:focus-visible { outline-color: #f9f1e4; }
+  header a:focus-visible { outline-color: #f9f1e4; }
+</style>
+</head>
+<body>
+
+<!-- ============ The hero: 100vw × 100svh, focal point clear of text ============ -->
+<header class="relative w-[100vw] h-[100svh] min-h-[560px] overflow-hidden">
+  <img id="hero-photo" class="photo" alt="Felucca boats on the Nile at Aswan at dusk">
+  <div class="scrim-top"></div>
+  <div class="scrim-bottom"></div>
+
+  <!-- The demo chip: one per page, top-left, always on screen. -->
+  <div class="absolute top-0 left-0 p-md flex">
+    <p class="bg-primary text-primary-foreground rounded-base p-xs t-label flex items-center gap-sm">
+      <span class="inline-block w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true"></span>
+      Demo · an acceptance test — not this restaurant's website
+    </p>
+  </div>
+
+  <!-- Nav words, top-right, at label size, with the operator's mark. -->
+  <nav class="absolute top-0 right-0 p-md photo-chip flex items-center gap-md text-primary-foreground">
+    <a href="#board" class="t-label hover:underline underline-offset-4">The board</a>
+    <a href="#dishes" class="t-label hover:underline underline-offset-4">Dishes</a>
+    <a href="#find" class="t-label hover:underline underline-offset-4">Find us</a>
+    <span aria-hidden="true" data-mark></span>
+  </nav>
+
+  <!-- The name, the film title: Arabic over Latin, hugging the bottom edge. -->
+  <div class="absolute bottom-0 left-0 right-0 p-5 md:p-10 text-primary-foreground">
+    <h1 class="t-hero-name" lang="ar" dir="rtl">المدينة للفحم والشاورما</h1>
+    <p class="latin-title mt-sm md:mt-base">Al Madina — Coal &amp; Shawarma</p>
+    <p class="t-label mt-xs" style="opacity:.85">Aswan · Egypt</p>
+    <p id="hero-credit" class="t-label mt-xs max-w-[72ch]" style="opacity:.75"></p>
+  </div>
+</header>
+
+<!-- ============ Statements and photographs: alternating narrow columns, large pictures ============ -->
+<section class="py-xl md:py-2xl">
+  <div class="wrap px-md t-body space-y-md">
+    <p>One of the grill houses on the Corniche in Aswan, where the coal does
+    the cooking and the river does the view. Feluccas cross the Nile at dusk,
+    the smoke drifts, and the board out front carries the day's prices in
+    Egyptian pounds.</p>
+    <p>Because this page is an acceptance test of the station skills and not
+    the restaurant's website, its rule is simple: everything here is confirmed
+    by the operator, credited to its maker, or openly pointed at the board and
+    the listing. Nothing on the page is invented.</p>
+  </div>
+</section>
+
+<section>
+  <figure class="min-w-0">
+    <img id="river-full" class="w-full h-[80svh] object-cover" alt="The Nile panorama at Aswan" loading="lazy" decoding="async">
+    <figcaption id="river-full-credit" class="t-label text-muted px-md pt-sm center-ink max-w-[68rem]"></figcaption>
+  </figure>
+</section>
+
+<section class="py-lg md:py-xl">
+  <div class="flex flex-col md:flex-row gap-sm md:gap-base px-sm md:px-md min-w-0">
+    <figure class="md:flex-[1.6] min-w-0">
+      <div class="h-[42svh] md:h-[56vh] overflow-hidden">
+        <img data-photo="a-felucca" class="photo" alt="A single felucca under sail on the Nile" loading="lazy" decoding="async">
+      </div>
+      <figcaption class="t-label text-muted mt-xs"></figcaption>
+    </figure>
+    <figure class="md:flex-[1] min-w-0">
+      <div class="h-[42svh] md:h-[56vh] overflow-hidden">
+        <img data-photo="nile-r05" class="photo" alt="The Nile and its banks at Aswan" loading="lazy" decoding="async">
+      </div>
+      <figcaption class="t-label text-muted mt-xs"></figcaption>
+    </figure>
+  </div>
+  <div class="wrap px-md pt-xl md:pt-2xl pb-lg">
+    <p class="t-body text-muted">The city sets the table: a museum gate on the
+    hill, a river full of sails, banks that changed little in a century. The
+    kitchen is one of many — what carried this house is in the name.</p>
+  </div>
+  <div class="px-md md:px-lg ms-[12vw] max-w-[20rem]">
+    <figure>
+      <div class="h-[64svh] overflow-hidden">
+        <img data-photo="museum" class="photo" alt="The entrance of the Nubian Museum in Aswan" loading="lazy" decoding="async">
+      </div>
+      <figcaption class="t-label text-muted mt-xs"></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ The two dish pictures: cultural likenesses only ============ -->
+<section id="dishes" class="py-xl md:py-2xl">
+  <div class="wrap px-md">
+    <h2 class="t-display">Cooked in this city,<br>photographed by others</h2>
+    <p class="t-body mt-md">Two dishes all of Egypt eats: foul medames at
+    breakfast, koshary whenever it's hungry. The photographs below are
+    licensed likenesses of those dishes — <strong>not pictures from our
+    kitchen</strong> — credited to their photographers.</p>
+  </div>
+  <div class="flex flex-col md:flex-row gap-sm md:gap-base px-sm md:px-md mt-lg min-w-0">
+    <figure class="md:flex-[1.4] min-w-0">
+      <div class="h-[44svh] md:h-[52vh] overflow-hidden">
+        <img data-photo="koshary" class="photo" alt="A bowl of koshary — a likeness of the Egyptian dish, not our plates" loading="lazy" decoding="async">
+      </div>
+      <figcaption class="t-label text-muted mt-xs"></figcaption>
+    </figure>
+    <figure class="md:flex-[1] min-w-0">
+      <div class="h-[44svh] md:h-[52vh] overflow-hidden">
+        <img data-photo="foul" class="photo" alt="A plate of foul medames — a likeness of the Egyptian dish, not our plates" loading="lazy" decoding="async">
+      </div>
+      <figcaption class="t-label text-muted mt-xs"></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ The board slate: the one filled panel; the board is the menu ============ -->
+<section id="board" class="py-xl md:py-2xl">
+  <div class="max-w-[46rem] mx-auto px-md">
+    <div class="bg-surface rounded-base p-md md:p-lg">
+      <h2 class="t-heading" lang="ar" dir="rtl">القائمة على اللوحة</h2>
+      <p class="t-label text-muted mt-xs text-right">The board is the menu</p>
+      <ul class="t-body mt-md space-y-sm list-none">
+        <li><strong>Shawarma</strong> <span lang="ar" dir="rtl">شاورما</span> — promised by the name itself.</li>
+        <li><strong>Charcoal-grilled dishes</strong> <span lang="ar" dir="rtl">على الفحم</span> — promised by the name itself.</li>
+        <li>Everything else — the operator's board carries it; the page posts
+        no unverified items.</li>
+        <li>Prices, in Egyptian pounds (EGP), are stated only on the board.</li>
+      </ul>
+      <a href="#find" class="btn-primary inline-flex items-center gap-sm bg-primary text-primary-foreground rounded-base t-label px-md h-[44px] mt-md hover:underline underline-offset-4">
+        Find us on the Corniche
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Practical info, once, near the end, plain two columns ============ -->
+<section id="find" class="pb-xl md:pb-2xl">
+  <div class="max-w-[46rem] center-ink px-md">
+    <div class="grid md:grid-cols-2 gap-lg md:gap-xl">
+      <div>
+        <h2 class="t-heading">The board</h2>
+        <p class="t-body mt-sm">The day's dishes and their prices — in Egyptian
+        pounds — live on the operator's board at the counter. It is the only
+        menu authority this page accepts.</p>
+      </div>
+      <div>
+        <h2 class="t-heading">The listing</h2>
+        <p class="t-body mt-sm">The address, the phone number and the opening
+        hours travel with the business's public listing. The page posts none
+        of them, so none can go stale here.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Footer: every credit, twice-told ============ -->
+<footer class="pb-lg">
+  <div class="wrap px-md t-label text-muted space-y-xs" id="footer-credits">
+    <div class="flex items-center gap-sm pt-md">
+      <span aria-hidden="true" data-mark data-mark-lg></span>
+      <p id="logo-credit"></p>
+    </div>
+    <!-- photo credits are listed here by the page's own data -->
+  </div>
+  <div class="wrap px-md mt-md t-label text-muted">
+    <p>Forged, built, verified and judged by the station skills:
+    celebrimbor · galadriel · haldir · legolas.
+    <span lang="ar" dir="rtl" style="white-space:nowrap">المدينة للفحم والشاورما</span> renders the
+    confirmed Latin name of the house; the operator's own signage overrides it.</p>
+  </div>
+</footer>
+
+<script>
+/* The page's single data source: every photo slot, caption, credit line and
+   the tool file above are rendered from these entries. */
+window.PAGE_PHOTOS = [
+  {
+    slot: "hero",
+    file: "assets/nile-river-felucca-boats-aswan-egypt.jpg",
+    alt: "Felucca boats on the Nile at Aswan at dusk",
+    credit: "\u201CNile River, Felucca boats, Aswan, Egypt\u201D by Vyacheslav Argenberg, CC BY 4.0, via Wikimedia Commons",
+  },
+  {
+    slot: "river-full",
+    file: "assets/aswan-nile-r23.jpg",
+    alt: "The Nile panorama at Aswan",
+    credit: "\u201CAswan Nile R23\u201D by Marc Ryckaert (MJJR), CC BY 3.0, via Wikimedia Commons",
+  },
+  {
+    slot: "a-felucca",
+    file: "assets/nile-river-felucca-boat-aswan-egypt.jpg",
+    alt: "A single felucca under sail on the Nile",
+    credit: "\u201CNile River, Felucca boat, Aswan, Egypt\u201D by Vyacheslav Argenberg, CC BY 4.0, via Wikimedia Commons",
+  },
+  {
+    slot: "nile-r05",
+    file: "assets/aswan-nile-r05.jpg",
+    alt: "The Nile and its banks at Aswan",
+    credit: "\u201CAswan Nile R05\u201D by Marc Ryckaert (MJJR), CC BY 3.0, via Wikimedia Commons",
+  },
+  {
+    slot: "museum",
+    file: "assets/aswan-nubian-museum-entrance.jpg",
+    alt: "The entrance of the Nubian Museum in Aswan",
+    credit: "\u201CAswan Nubian Museum entrance\u201D by Marc Ryckaert, CC BY 3.0, via Wikimedia Commons",
+  },
+  {
+    slot: "koshary",
+    file: "assets/egyptian-food-koshary.jpg",
+    alt: "A bowl of koshary — a likeness of the Egyptian dish, not our plates",
+    credit: "\u201CEgyptian food Koshary\u201D by Dina Said, CC BY-SA 4.0, via Wikimedia Commons — a likeness of the dish, not a picture from our kitchen",
+  },
+  {
+    slot: "foul",
+    file: "assets/qwaider-al-nabulsi-foul-medames-11389639565.jpg",
+    alt: "A plate of foul medames — a likeness of the Egyptian dish, not our plates",
+    credit: "\u201CQwaider al nabulsi foul medames\u201D by Krista, CC BY 2.0, via Wikimedia Commons — a likeness of the dish, not a picture from our kitchen",
+  },
+];
+
+(() => {
+  "use strict";
+  /* The operator's mark, traced from assets/al-madina-logo.jpg at its plate
+     shape. The jpg is the authoritative mark; this inline trace is small-size
+     use only, never tiled or repainted. */
+  const MARK_SVG = `
+    <svg class="inline-block w-[26px] h-[26px]" viewBox="0 0 1000 1000" role="img" aria-label="The Al Madina mark">
+      <style>
+        .m-field { fill: var(--color-primary); }
+        .m-cream { stroke: var(--color-primary-foreground); fill: var(--color-primary-foreground); }
+        .m-cream-line { stroke: var(--color-primary-foreground); fill: none; }
+        .m-gold { fill: var(--color-accent); }
+      </style>
+      <rect class="m-field" x="0" y="0" width="1000" height="1000"/>
+      <circle class="m-cream-line" cx="500" cy="560" r="270" stroke-width="44"/>
+      <path class="m-cream-line" stroke-width="40" fill="none" d="M205 445 C 300 340, 390 340, 470 435 S 640 520, 760 420"/>
+      <circle class="m-cream" cx="500" cy="252" r="34"/>
+      <circle class="m-cream" cx="402" cy="304" r="28"/>
+      <circle class="m-cream" cx="594" cy="304" r="28"/>
+      <circle class="m-gold" cx="648" cy="562" r="140"/>
+      <circle class="m-field" cx="596" cy="562" r="132"/>
+      <circle class="m-gold" cx="472" cy="540" r="13"/>
+      <circle class="m-gold" cx="520" cy="596" r="10"/>
+      <circle class="m-gold" cx="452" cy="610" r="8"/>
+      <circle class="m-gold" cx="500" cy="488" r="9"/>
+      <circle class="m-gold" cx="552" cy="520" r="7"/>
+    </svg>`;
+
+  for (const host of document.querySelectorAll("[data-mark]")) {
+    host.outerHTML = MARK_SVG;
+  }
+
+  // hero first (eager), the rest as they are declared
+  const hero = window.PAGE_PHOTOS.find(p => p.slot === "hero");
+  document.getElementById("hero-photo").src = hero.file;
+  document.getElementById("hero-photo").alt = hero.alt;
+  document.getElementById("hero-credit").textContent = "Photograph — " + hero.credit;
+
+  const riverFull = window.PAGE_PHOTOS.find(p => p.slot === "river-full");
+  const rf = document.getElementById("river-full");
+  rf.src = riverFull.file; rf.alt = riverFull.alt;
+  document.getElementById("river-full-credit").textContent = riverFull.credit;
+
+  for (const img of document.querySelectorAll("img[data-photo]")) {
+    const p = window.PAGE_PHOTOS.find(x => x.slot === img.dataset.photo);
+    if (!p) continue;
+    img.src = p.file;
+    img.alt = p.alt;
+    const fig = img.closest("figure").querySelector("figcaption");
+    if (fig) fig.textContent = p.credit;
+  }
+
+  const logoCredit = "The brand mark of Al Madina Coal & Shawarma, provided by the operator for this demo — the jpg beside this page is authoritative.";
+  document.getElementById("logo-credit").textContent = logoCredit;
+
+  const foot = document.getElementById("footer-credits");
+  const list = document.createElement("div");
+  list.className = "space-y-base pt-sm";
+  for (const p of window.PAGE_PHOTOS) {
+    const line = document.createElement("p");
+    line.textContent = p.file.replace("assets/", "") + " — " + p.credit;
+    list.appendChild(line);
+  }
+  foot.appendChild(list);
+})();
+</script>
+
+<!-- ============ WebMCP tool file — galadriel authors it, qa consumes it ============
+     Gated: only on localhost with ?qa=1; never registered elsewhere.
+     One tool, photos.list: returns the live array the gallery rendered from,
+     so a qa round can compare the page's own data claim with its DOM.
+     The guards are deliberate: document.modelContext only exists in an
+     agent-capable browser, and the data script above must have run first. -->
+<script>
+(() => {
+  "use strict";
+  const onLocalhost = ["localhost", "127.0.0.1"].includes(location.hostname);
+  const qaFlag = new URLSearchParams(location.search).get("qa") === "1";
+  if (!onLocalhost || !qaFlag) return;
+  if (!window.PAGE_PHOTOS || !document.modelContext || typeof document.modelContext.registerTool !== "function") return;
+
+  document.modelContext.registerTool(
+    {
+      name: "photos.list",
+      description:
+        "Lists the photographs this page renders, with credits, exactly as the page's own data holds them. Read-only; compare against the images actually in the DOM.",
+      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      async execute() {
+        const photos = window.PAGE_PHOTOS.map(p => ({ file: p.file, credit: p.credit }));
+        return { content: [{ type: "text", text: JSON.stringify({ count: photos.length, photos }) }] };
+      },
+    },
+  );
+})();
+</script>
+</body>
+</html>

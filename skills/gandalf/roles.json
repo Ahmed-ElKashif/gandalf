@@ -6,17 +6,17 @@
       "wire": "feature",
       "alias": "Aragorn",
       "kind": "walk",
-      "domain": "full-stack / feature",
+      "domain": "server-side / feature",
       "needs": "the strongest all-round coder you can afford",
-      "carries": "stack packs + Ponytail"
+      "carries": "the `aragorn` station + stack packs + Ponytail"
     },
     {
       "wire": "ui",
       "alias": "Galadriel",
       "kind": "walk",
-      "domain": "frontend / design craft",
+      "domain": "frontend / the interface surface",
       "needs": "good with visuals and long horizons",
-      "carries": "craft + DESIGN.md (forge with celebrimbor if missing) + taste/motion menu"
+      "carries": "the `galadriel` station + craft packs + `DESIGN.md` (celebrimbor forges it if missing)"
     },
     {
       "wire": "bugfix",
@@ -56,15 +56,15 @@
       "kind": "walk",
       "domain": "behaviour verification / browser",
       "needs": "patient, sceptical, drives a browser (no vision)",
-      "carries": "palantír — the UI behaviour gate"
+      "carries": "the `haldir` station running `palantir`"
     },
     {
       "wire": "qa-look",
       "alias": "Legolas",
       "kind": "walk",
-      "domain": "visual verification / the eye",
+      "domain": "appearance / the eye",
       "needs": "vision-capable — the only seat that needs it",
-      "carries": "the appearance pass, against DESIGN.md"
+      "carries": "the `legolas` station — the appearance pass, against DESIGN.md"
     },
     {
       "wire": "plan-debate",

@@ -8,7 +8,13 @@
  *   - one canonical role registry (11 roles: 8 walk, 3 judge);
  *   - every role alias and wire name present in the docs that cast roles;
  *   - no stale "ten roles" counts or manual "prepend the role block" steps;
- *   - the council and gandalf preambles templates are byte-identical;
+ *   - the council and gandalf preambles templates are byte-identical, and are
+ *     what build-preambles.mjs currently generates (staleness fails);
+ *   - the stations' lane blocks name real wire roles, claim each craft wire
+ *     exactly once, and the casting lanes carry no station block;
+ *   - the four station packs are first-party, tier core, with the right role;
+ *     interface packs (shadcn-ui, wshobson-agents) never serve "feature";
+ *   - the README names all eight first-party skills;
  *   - no stale qa/vision claims or "two skills" copy in the README;
  *   - fellowship.mjs knows every wire role (including qa-look);
  *   - packs.json points at this repo's real remote;
@@ -155,6 +161,95 @@ if (!existsSync(gandalfTemplate) || !existsSync(councilTemplate)) {
   }
 }
 
+// ---- 4b. the shipped preambles templates are generated and current ----------
+// The template is an artefact: build-preambles.mjs composes it from roles.json,
+// the casting document, and the four station lane blocks (ADR-0001). A hand
+// edit to a generated copy is silent drift — the next regenerate overwrites
+// it. Staleness is detected here, not by accident later.
+
+const normalizeText = (text) => String(text).replace(/\r\n/g, "\n").trimEnd();
+let composePreambles = null;
+try {
+  ({ composePreambles } = await import("./build-preambles.mjs"));
+} catch (error) {
+  fail(`build-preambles.mjs cannot be imported: ${error.message}`);
+}
+if (composePreambles) {
+  let expected = null;
+  try {
+    expected = normalizeText(composePreambles());
+  } catch (error) {
+    fail(`build-preambles.mjs: composePreambles() failed: ${error.message}`);
+  }
+  if (expected !== null) {
+    const templateRel = [
+      "skills/gandalf/templates/preambles.example.md",
+      "skills/council-of-elrond/templates/preambles.example.md",
+    ];
+    const stale = templateRel.filter(
+      (rel) => !existsSync(join(ROOT, rel)) || normalizeText(read(rel)) !== expected,
+    );
+    if (stale.length) {
+      fail(
+        `preambles templates: stale or differing: ${stale.join(", ")} ` +
+          `— run node skills/gandalf/scripts/build-preambles.mjs`,
+      );
+    } else {
+      pass("preambles templates: generated and current (build-preambles.mjs)");
+    }
+  }
+}
+
+// ---- 4c. the stations' lane blocks name real wire roles ---------------------
+// A station's lane block is the single source for its lane text, so the wire
+// it claims must be a real wire role, its alias must match roles.json, and
+// each craft wire must be claimed exactly once. The casting lanes carry no
+// station block: their text is casting, not a method, and lives in
+// templates/preambles-casting.md.
+
+const laneBlockRe = /<!-- gandalf:lane-block wire="([^"]+)" alias="([^"]+)" -->/g;
+const claims = new Map(); // wire -> [skill directory names]
+const skillsDir = join(ROOT, "skills");
+for (const entry of readdirSync(skillsDir, { withFileTypes: true })) {
+  if (!entry.isDirectory()) continue;
+  const skillMdPath = join(skillsDir, entry.name, "SKILL.md");
+  if (!existsSync(skillMdPath)) continue;
+  const text = readFileSync(skillMdPath, "utf8");
+  for (const m of text.matchAll(laneBlockRe)) {
+    const [wire, alias] = [m[1], m[2]];
+    if (!wires.has(wire)) {
+      fail(`station lane block: ${entry.name}/SKILL.md claims wire "${wire}", which roles.json does not know`);
+      continue;
+    }
+    const role = roles.find((r) => r.wire === wire);
+    if (role && role.alias !== alias) {
+      fail(`station lane block: ${entry.name}/SKILL.md claims wire "${wire}" with alias "${alias}"; roles.json says "${role.alias}"`);
+    }
+    if (!claims.has(wire)) claims.set(wire, []);
+    claims.get(wire).push(entry.name);
+  }
+}
+
+const STATION_WIRES = new Set(["feature", "ui", "qa", "qa-look"]);
+{
+  const problems = [];
+  for (const wire of wires) {
+    const who = claims.get(wire) ?? [];
+    if (STATION_WIRES.has(wire)) {
+      if (who.length !== 1) problems.push(`wire "${wire}" must be claimed by exactly one station (found ${who.length ? who.join(", ") : "none"})`);
+    } else if (who.length) {
+      problems.push(`casting lane "${wire}" carries a station block (${who.join(", ")}) — its text stays in templates/preambles-casting.md`);
+    }
+  }
+  if (problems.length) {
+    for (const p of problems) fail(`station lane blocks: ${p}`);
+  } else {
+    pass(`station lane blocks: ${claims.size} craft wires claimed once each (${[...claims.keys()].join(", ")})`);
+  }
+}
+
+// ---- 4d/4e live with the packs.json and README checks below (sections 7+/5).
+
 // ---- 5. version and README claims ----------------------------------------
 
 const skillText = read("skills/gandalf/SKILL.md");
@@ -196,6 +291,27 @@ if (!readme.includes("| LOTR name | Wire name |")) {
   } else {
     pass(`README: role table has ${rows.length} data rows`);
   }
+}
+
+// The eight first-party skills must all appear in the README: two seats
+// (gandalf, council-of-elrond), five stations (celebrimbor, galadriel,
+// aragorn, haldir, legolas), and the engine (palantir).
+
+const FIRST_PARTY = [
+  "gandalf",
+  "council-of-elrond",
+  "celebrimbor",
+  "palantir",
+  "galadriel",
+  "aragorn",
+  "haldir",
+  "legolas",
+];
+const missingFromReadme = FIRST_PARTY.filter((name) => !hasStandalone(readme, name));
+if (missingFromReadme.length) {
+  fail(`README: first-party skills missing from the text: ${missingFromReadme.join(", ")}`);
+} else {
+  pass(`README: all ${FIRST_PARTY.length} first-party skills are named`);
 }
 
 // The frontmatter description is the discovery surface; a role missing there is a
@@ -244,6 +360,55 @@ if (expectedUrl) {
   }
 } else {
   pass("packs.json: skipped remote check (no git remote and no GANDALF_REPO_URL)");
+}
+
+// ---- 7b. the station packs: first-party, tier core, matching role -----------
+
+const EXPECTED_STATION_ROLE = {
+  galadriel: "ui",
+  aragorn: "feature",
+  haldir: "qa",
+  legolas: "qa-look",
+};
+for (const [id, wire] of Object.entries(EXPECTED_STATION_ROLE)) {
+  const pack = packs.find((p) => p.id === id);
+  if (!pack) {
+    fail(`packs.json: no entry for the ${wire} station ("${id}")`);
+    continue;
+  }
+  const problems = [];
+  if (pack.tier !== "core") problems.push(`tier "${pack.tier}" is not "core"`);
+  if (!Array.isArray(pack.roles) || !pack.roles.includes(wire)) {
+    problems.push(`roles [${(pack.roles ?? []).join(", ")}] do not include "${wire}"`);
+  }
+  if (!String(pack.repo || "").startsWith("this repo")) problems.push("not a first-party pack");
+  if (problems.length) {
+    fail(`packs.json: station pack "${id}": ${problems.join("; ")}`);
+  } else {
+    pass(`packs.json: station pack "${id}" (${wire}, tier core)`);
+  }
+}
+
+// The interface skills ride with the `ui` station now. A pack whose skills
+// build interfaces must never be assigned to the feature lane — that pack row
+// is what told the old world that the design-system seat also builds pages,
+// and it is how a second UI without the design system appears (ADR-0001).
+
+const UI_ONLY_PACK_IDS = ["shadcn-ui", "wshobson-agents"];
+for (const id of UI_ONLY_PACK_IDS) {
+  const pack = packs.find((p) => p.id === id);
+  if (!pack) {
+    fail(`packs.json: missing pack "${id}"`);
+    continue;
+  }
+  const packRoles = Array.isArray(pack.roles) ? pack.roles : [];
+  if (packRoles.includes("feature")) {
+    fail(`packs.json: "${id}" is assigned to "feature" — interface skills belong to the ui station`);
+  } else if (!packRoles.includes("ui")) {
+    fail(`packs.json: "${id}" does not carry the "ui" role`);
+  } else {
+    pass(`packs.json: "${id}" serves the ui lane, not feature`);
+  }
 }
 
 // ---- 8. README credits match the manifest ---------------------------------
